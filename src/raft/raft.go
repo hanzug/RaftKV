@@ -41,6 +41,10 @@ func (rf *Raft) CondInstallSnapshot(lastIncludedTerm int, lastIncludedIndex int,
 	return true
 }
 
+func (rf *Raft) Me() int {
+	return rf.me
+}
+
 func (rf *Raft) InstallSnapshot(request *InstallSnapshotRequest, response *InstallSnapshotResponse) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
@@ -194,6 +198,12 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 	rf.logs[0].Command = nil
 	rf.persister.SaveStateAndSnapshot(rf.encodeState(), snapshot)
 	DPrintf("{Node %v}'s state is {state %v,term %v,commitIndex %v,lastApplied %v,firstLog %v,lastLog %v} after replacing log with snapshotIndex %v as old snapshotIndex %v is smaller", rf.me, rf.state, rf.currentTerm, rf.commitIndex, rf.lastApplied, rf.getFirstLog(), rf.getLastLog(), index, snapshotIndex)
+}
+
+func (rf *Raft) GetRaftStateSize() int {
+	rf.mu.RLock()
+	defer rf.mu.RUnlock()
+	return rf.persister.RaftStateSize()
 }
 
 func (rf *Raft) Start(command interface{}) (int, int, bool) {
