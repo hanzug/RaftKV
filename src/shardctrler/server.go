@@ -4,13 +4,14 @@ import (
 	"6.824/raft"
 	"fmt"
 	"sync/atomic"
+	"time"
 )
 import "6.824/labrpc"
 import "sync"
 import "6.824/labgob"
 
 type ShardCtrler struct {
-	mu      sync.Mutex
+	mu      sync.RWMutex
 	me      int
 	dead    int32
 	rf      *raft.Raft
@@ -41,6 +42,61 @@ func (sc *ShardCtrler) killed() bool {
 // needed by shardkv tester
 func (sc *ShardCtrler) Raft() *raft.Raft {
 	return sc.rf
+}
+
+type CommandRequest struct {
+	Servers   map[int][]string // for Join
+	GIDs      []int            // for Leave
+	Shard     int              // for Move
+	GID       int              // for Move
+	Num       int              // for Query
+	Op        OperationOp
+	ClientId  int64
+	CommandId int64
+}
+
+func (sc *ShardCtrler) Command(request *CommandRequest, response *CommandResponse) {
+	defer DPrintf("{Node %v}'s state is {}, processes CommandRequest %v with CommandResponse %v", sc.rf.Me(), request, response)
+
+	sc.mu.RLock()
+
+	if request.Op != OpQuery && sc.isDuplicateRequest(request.ClientId, request.CommandId) {
+		lastResponse := sc.lastOperations[request.ClientId].LastResponse
+		response.Config, response.Err = lastResponse.Config, lastResponse.Err
+		sc.mu.RUnlock()
+		return
+	}
+
+	sc.mu.RUnlock()
+
+	index, _, isLeader := sc.rf.Start(Command{request})
+
+	if !isLeader {
+		response.Err = ErrWrongLeader
+		return
+	}
+
+	sc.mu.Lock()
+
+	ch := sc.getNotifyChan(index)
+	sc.mu.Unlock()
+
+	select {
+	case result := <-ch:
+		response.Config, response.Err = result.Config, result.Err
+	case <-time.After(ExecuteTimeout):
+		response.Err = ErrTimeout
+	}
+
+	go func() {
+		sc.mu.Lock()
+		sc.removeOutdateNotifyChan(index)
+		sc.mu.Unlock()
+	}()
+}
+
+func (sc *ShardCtrler) removeOutdateNotifyChan(index int) {
+	delete(sc.notifyChans, index)
 }
 
 func (sc *ShardCtrler) applier() {

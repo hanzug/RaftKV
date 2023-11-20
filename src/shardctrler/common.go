@@ -1,6 +1,9 @@
 package shardctrler
 
-import "log"
+import (
+	"log"
+	"time"
+)
 
 //
 // Shard controler: assigns shards to replication groups.
@@ -58,7 +61,9 @@ type OperationContext struct {
 }
 
 const (
-	OK = "OK"
+	OK Err = iota
+	ErrWrongLeader
+	ErrTimeout
 )
 
 const (
@@ -72,7 +77,7 @@ type Command struct {
 	*CommandRequest
 }
 
-type Err string
+type Err uint8
 
 type JoinArgs struct {
 	Servers map[int][]string // new GID -> servers mappings
@@ -112,18 +117,9 @@ type QueryReply struct {
 	Config      Config
 }
 
-type CommandRequest struct {
-	Servers   map[int][]string // for Join
-	GIDs      []int            // for Leave
-	Shard     int              // for Move
-	GID       int              // for Move
-	Num       int              // for Query
-	Op        OperationOp
-	ClientId  int64
-	CommandId int64
-}
-
 type CommandResponse struct {
 	Err    Err
 	Config Config
 }
+
+const ExecuteTimeout = 500 * time.Millisecond
