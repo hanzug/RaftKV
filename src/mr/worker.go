@@ -52,7 +52,7 @@ func Worker(mapf func(string, string) []KeyValue, reducef func(string, []string)
 		case WaittingTask:
 			{
 				time.Sleep(time.Second * 5)
-				fmt.Println("All tasks are in progress, please wait...")
+				//fmt.Println("All tasks are in progress, please wait...")
 			}
 
 		case ReduceTask:
@@ -65,16 +65,15 @@ func Worker(mapf func(string, string) []KeyValue, reducef func(string, []string)
 		case ExitTask:
 			{
 				time.Sleep(time.Second)
-				fmt.Println("All tasks are Done ,will be exiting...")
+				//fmt.Println("All tasks are Done ,will be exiting...")
 				keepFlag = false
 			}
-
 		}
+
 	}
 
 	time.Sleep(time.Second)
 	// uncomment to send the Example RPC to the coordinator.
-
 }
 
 // example function to show how to make an RPC call to the coordinator.
