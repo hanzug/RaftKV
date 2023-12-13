@@ -56,6 +56,7 @@ func (rf *Raft) AppendEntries(request *AppendEntriesRequest, response *AppendEnt
 	response.Term, response.Success = rf.currentTerm, true
 }
 
+// replicate logs to catch up
 func (rf *Raft) replicateOneRound(peer int) {
 	rf.mu.RLock()
 	if rf.state != StateLeader {
