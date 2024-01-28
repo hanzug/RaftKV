@@ -248,9 +248,9 @@ func (rf *Raft) replicator(peer int) {
 	}
 }
 
+// 计时触发器：开始选举（follower），心跳（leader）
 func (rf *Raft) ticker() {
 	for rf.killed() == false {
-
 		select {
 		case <-rf.electionTimer.C:
 			rf.mu.Lock()
@@ -262,7 +262,7 @@ func (rf *Raft) ticker() {
 		case <-rf.heartbeatTimer.C:
 			rf.mu.Lock()
 			if rf.state == StateLeader {
-				rf.BroadcastHeartbeat(true)
+				rf.BroadcastHeartbeat(true) //是心跳，而不是更新
 				rf.heartbeatTimer.Reset(StableHeartbeatTimeout())
 			}
 			rf.mu.Unlock()
