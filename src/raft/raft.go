@@ -13,30 +13,45 @@ import (
 	"6.824/labrpc"
 )
 
-// A service wants to switch to snapshot.  Only do so if Raft hasn't
-// have more recent info since it communicate the snapshot on applyCh.
+// CondInstallSnapshot 是 Raft 协议中的一个方法，用于在当前节点上安装快照。
+// 它首先会检查快照的 lastIncludedIndex 是否小于或等于当前节点的 commitIndex，
+// 如果是，则认为这个快照是过时的，直接返回 false。
+// 如果快照的 lastIncludedIndex 大于当前节点的最后一个日志条目的索引，
+// 则清空当前节点的日志。
+// 否则，将当前节点的日志截取到 lastIncludedIndex，并将第一个日志条目的命令设置为 nil。
+// 然后更新第一个日志条目的 term 和 index 为快照的 lastIncludedTerm 和 lastIncludedIndex，
+// 并将当前节点的 lastApplied 和 commitIndex 都设置为 lastIncludedIndex。
+// 最后，将当前节点的状态和快照数据保存到持久化存储中。
 func (rf *Raft) CondInstallSnapshot(lastIncludedTerm int, lastIncludedIndex int, snapshot []byte) bool {
+	// 加锁以保证并发安全
 	rf.mu.Lock()
+	// 函数结束时解锁
 	defer rf.mu.Unlock()
+	// 打印当前节点的状态和请求的信息
 	DPrintf("{Node %v} service calls CondInstallSnapshot with lastIncludedTerm %v and lastIncludedIndex %v to check whether snapshot is still valid in term %v", rf.me, lastIncludedTerm, lastIncludedIndex, rf.currentTerm)
 
-	// outdated snapshot
+	// 如果快照的 lastIncludedIndex 小于或等于当前节点的 commitIndex，则认为这个快照是过时的，直接返回 false
 	if lastIncludedIndex <= rf.commitIndex {
 		DPrintf("{Node %v} rejects the snapshot which lastIncludedIndex is %v because commitIndex %v is larger", rf.me, lastIncludedIndex, rf.commitIndex)
 		return false
 	}
 
+	// 如果快照的 lastIncludedIndex 大于当前节点的最后一个日志条目的索引，则清空当前节点的日志
+	// 否则，将当前节点的日志截取到 lastIncludedIndex，并将第一个日志条目的命令设置为 nil
 	if lastIncludedIndex > rf.getLastLog().Index {
 		rf.logs = make([]Entry, 1)
 	} else {
 		rf.logs = shrinkEntriesArray(rf.logs[lastIncludedIndex-rf.getFirstLog().Index:])
 		rf.logs[0].Command = nil
 	}
-	// update dummy entry with lastIncludedTerm and lastIncludedIndex
+	// 更新第一个日志条目的 term 和 index 为快照的 lastIncludedTerm 和 lastIncludedIndex
 	rf.logs[0].Term, rf.logs[0].Index = lastIncludedTerm, lastIncludedIndex
+	// 将当前节点的 lastApplied 和 commitIndex 都设置为 lastIncludedIndex
 	rf.lastApplied, rf.commitIndex = lastIncludedIndex, lastIncludedIndex
 
+	// 将当前节点的状态和快照数据保存到持久化存储中
 	rf.persister.SaveStateAndSnapshot(rf.encodeState(), snapshot)
+	// 打印当前节点的状态
 	DPrintf("{Node %v}'s state is {state %v,term %v,commitIndex %v,lastApplied %v,firstLog %v,lastLog %v} after accepting the snapshot which lastIncludedTerm is %v, lastIncludedIndex is %v", rf.me, rf.state, rf.currentTerm, rf.commitIndex, rf.lastApplied, rf.getFirstLog(), rf.getLastLog(), lastIncludedTerm, lastIncludedIndex)
 	return true
 }
@@ -45,28 +60,45 @@ func (rf *Raft) Me() int {
 	return rf.me
 }
 
+// InstallSnapshot 是 Raft 协议中的一个 RPC 方法，用于处理安装快照的请求。
+// 它首先会检查请求的 term 与当前节点的 term，
+// 如果请求的 term 小于当前节点的 term，则直接返回。
+// 如果请求的 term 大于当前节点的 term，则更新当前节点的 term，并将 votedFor 设置为 -1。
+// 然后将当前节点的状态改为 Follower，并重置选举定时器。
+// 如果请求中的 LastIncludedIndex 小于或等于当前节点的 commitIndex，则直接返回。
+// 最后，将快照数据发送到 applyCh，以便应用到状态机。
 func (rf *Raft) InstallSnapshot(request *InstallSnapshotRequest, response *InstallSnapshotResponse) {
+	// 加锁以保证并发安全
 	rf.mu.Lock()
+	// 函数结束时解锁
 	defer rf.mu.Unlock()
+	// 打印当前节点的状态和请求、响应的信息
 	defer DPrintf("{Node %v}'s state is {state %v,term %v,commitIndex %v,lastApplied %v,firstLog %v,lastLog %v} before processing InstallSnapshotRequest %v and reply InstallSnapshotResponse %v", rf.me, rf.state, rf.currentTerm, rf.commitIndex, rf.lastApplied, rf.getFirstLog(), rf.getLastLog(), request, response)
+	// 设置响应的 term 为当前节点的 term
 	response.Term = rf.currentTerm
 
+	// 如果请求的 term 小于当前节点的 term，则直接返回
 	if request.Term < rf.currentTerm {
 		return
 	}
 
+	// 如果请求的 term 大于当前节点的 term，则更新当前节点的 term，并将 votedFor 设置为 -1
 	if request.Term > rf.currentTerm {
 		rf.currentTerm, rf.votedFor = request.Term, -1
+		// 持久化当前节点的 term 和 votedFor
 		rf.persist()
 	}
 
+	// 将当前节点的状态改为 Follower，并重置选举定时器
 	rf.ChangeState(StateFollower)
 	rf.electionTimer.Reset(StableHeartbeatTimeout())
 
+	// 如果请求中的 LastIncludedIndex 小于或等于当前节点的 commitIndex，则直接返回
 	if request.LastIncludedIndex <= rf.commitIndex {
 		return
 	}
 
+	// 将快照数据发送到 applyCh，以便应用到状态机
 	go func() {
 		rf.applyCh <- ApplyMsg{
 			SnapshotValid: true,
@@ -76,6 +108,7 @@ func (rf *Raft) InstallSnapshot(request *InstallSnapshotRequest, response *Insta
 		}
 	}()
 }
+
 func (rf *Raft) GetState() (int, bool) {
 	rf.mu.RLock()
 	defer rf.mu.RUnlock()
@@ -168,6 +201,7 @@ func (rf *Raft) advanceCommitIndexForLeader() {
 	}
 }
 
+// encodeState 将 Raft 节点的状态信息编码为字节序列
 func (rf *Raft) encodeState() []byte {
 	w := new(bytes.Buffer)
 	e := labgob.NewEncoder(w)
@@ -181,22 +215,33 @@ func (rf *Raft) encodeState() []byte {
 // all info up to and including index. this means the
 // service no longer needs the log through (and including)
 // that index. Raft should now trim its log as much as possible.
+// Snapshot 用于处理快照，以节省存储空间
 func (rf *Raft) Snapshot(index int, snapshot []byte) {
-	// Your code here (2D).
+	// 加锁，以防止并发问题
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
+
+	// 获取当前快照的索引
 	snapshotIndex := rf.getFirstLog().Index
+
+	// 如果给定的索引小于或等于当前的快照索引，就拒绝替换日志
 	if index <= snapshotIndex {
 		DPrintf("{Node %v} rejects replacing log with snapshotIndex %v as current snapshotIndex %v is larger in term %v", rf.me, index, snapshotIndex, rf.currentTerm)
 		return
 	}
+
+	// 如果给定的索引大于已应用的日志的索引，就更新已应用和已提交的日志的索引
 	if index > rf.lastApplied {
 		rf.lastApplied = snapshotIndex
 		rf.commitIndex = snapshotIndex
 	}
+
+	// 替换日志，并保存状态和快照
 	rf.logs = shrinkEntriesArray(rf.logs[index-snapshotIndex:])
 	rf.logs[0].Command = nil
 	rf.persister.SaveStateAndSnapshot(rf.encodeState(), snapshot)
+
+	// 在替换日志后，打印节点状态
 	DPrintf("{Node %v}'s state is {state %v,term %v,commitIndex %v,lastApplied %v,firstLog %v,lastLog %v} after replacing log with snapshotIndex %v as old snapshotIndex %v is smaller", rf.me, rf.state, rf.currentTerm, rf.commitIndex, rf.lastApplied, rf.getFirstLog(), rf.getLastLog(), index, snapshotIndex)
 }
 
@@ -221,6 +266,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	return newLog.Index, newLog.Term, true
 }
 
+// true: leader向follower广播心跳. false: 进行一轮同步
 func (rf *Raft) BroadcastHeartbeat(isHeartBeat bool) {
 	for peer := range rf.peers {
 		if peer == rf.me {
@@ -257,7 +303,7 @@ func (rf *Raft) ticker() {
 			rf.ChangeState(StateCandidate)
 			rf.currentTerm += 1
 			rf.StartElection()
-			rf.electionTimer.Reset(RandomizedElectionTimeout())
+			rf.electionTimer.Reset(RandomizedElectionTimeout()) // 选举超时时间随机，避免多节点同时选举，提高选举成功率
 			rf.mu.Unlock()
 		case <-rf.heartbeatTimer.C:
 			rf.mu.Lock()
@@ -321,8 +367,6 @@ func Make(peers []*labrpc.ClientEnd, me int,
 		heartbeatTimer: time.NewTimer(StableHeartbeatTimeout()),
 		electionTimer:  time.NewTimer(RandomizedElectionTimeout()),
 	}
-
-	// Your initialization code here (2A, 2B, 2C).
 
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
