@@ -18,17 +18,17 @@ type KVServer struct {
 	rf      *raft.Raft
 	applyCh chan raft.ApplyMsg
 
-	maxRaftState int // snapshot if log grows this big
-	lastApplied  int // record the lastApplied to prevent stateMachine from rollback
+	maxRaftState int // 如果日志增长到这个大小，就需要创建快照
+	lastApplied  int // 记录 lastApplied 以防止状态机回滚
 
-	stateMachine   KVStateMachine                // KV stateMachine
-	lastOperations map[int64]OperationContext    // determine whether log is duplicated by recording the last commandId and response corresponding to the clientId
-	notifyChans    map[int]chan *CommandResponse // notify client goroutine by applier goroutine to response
+	stateMachine   KVStateMachine                // KV 状态机
+	lastOperations map[int64]OperationContext    // 通过记录每个客户端的最后一个命令 ID 和对应的响应来判断日志是否重复
+	notifyChans    map[int]chan *CommandResponse // applier goroutine 通知客户端 goroutine 来响应
 }
 
 func (kv *KVServer) Command(request *CommandRequest, response *CommandResponse) {
 	defer DPrintf("{Node %v} processes CommandRequest %v with CommandResponse %v", kv.rf.Me(), request, response)
-	// return result directly without raft layer's participation if request is duplicated
+	// 如果请求是重复的，直接返回结果，不需要 raft 层参与
 	kv.mu.RLock()
 	if request.Op != OpGet && kv.isDuplicateRequest(request.ClientId, request.CommandId) {
 		lastResponse := kv.lastOperations[request.ClientId].LastResponse
@@ -37,8 +37,8 @@ func (kv *KVServer) Command(request *CommandRequest, response *CommandResponse) 
 		return
 	}
 	kv.mu.RUnlock()
-	// do not hold lock to improve throughput
-	// when KVServer holds the lock to take snapshot, underlying raft can still commit raft logs
+	// 不持有锁以提高吞吐量
+	// 当 KVServer 持有锁来获取快照时，底层的 raft 仍然可以提交 raft 日志
 	index, _, isLeader := kv.rf.Start(Command{request})
 	if !isLeader {
 		response.Err = ErrWrongLeader
@@ -87,7 +87,8 @@ func (kv *KVServer) killed() bool {
 	return atomic.LoadInt32(&kv.dead) == 1
 }
 
-// a dedicated applier goroutine to apply committed entries to stateMachine, take snapshot and apply snapshot from raft
+// applier 是状态机的 applier，用于应用实际数据的修改
+// 在Raft层中的applier，用于将日志持久化
 func (kv *KVServer) applier() {
 	for kv.killed() == false {
 		select {
@@ -95,26 +96,31 @@ func (kv *KVServer) applier() {
 			DPrintf("{Node %v} tries to apply message %v", kv.rf.Me(), message)
 			if message.CommandValid {
 				kv.mu.Lock()
+				// 如果消息的索引小于或等于最后应用的索引，那么这个消息就是过时的，需要被丢弃
 				if message.CommandIndex <= kv.lastApplied {
 					DPrintf("{Node %v} discards outdated message %v because a newer snapshot which lastApplied is %v has been restored", kv.rf.Me(), message, kv.lastApplied)
 					kv.mu.Unlock()
 					continue
 				}
+				// 更新最后应用的索引
 				kv.lastApplied = message.CommandIndex
 
 				var response *CommandResponse
 				command := message.Command.(Command)
+
+				// 如果命令不是获取操作，并且是重复的请求，那么就不需要将它应用到状态机
 				if command.Op != OpGet && kv.isDuplicateRequest(command.ClientId, command.CommandId) {
 					DPrintf("{Node %v} doesn't apply duplicated message %v to stateMachine because maxAppliedCommandId is %v for client %v", kv.rf.Me(), message, kv.lastOperations[command.ClientId], command.ClientId)
 					response = kv.lastOperations[command.ClientId].LastResponse
 				} else {
+					// 将日志应用到状态机，并获取响应
 					response = kv.applyLogToStateMachine(command)
 					if command.Op != OpGet {
 						kv.lastOperations[command.ClientId] = OperationContext{command.CommandId, response}
 					}
 				}
 
-				// only notify related channel for currentTerm's log when node is leader
+				// 如果当前节点是领导者，并且消息的任期和当前的任期一致，那么就通知相关的通道
 				if currentTerm, isLeader := kv.rf.GetState(); isLeader && message.CommandTerm == currentTerm {
 					ch := kv.getNotifyChan(message.CommandIndex)
 					ch <- response
@@ -203,6 +209,7 @@ func (kv *KVServer) applyLogToStateMachine(command Command) *CommandResponse {
 // you don't need to snapshot.
 // StartKVServer() must return quickly, so it should start goroutines
 // for any long-running work.
+// servers[]是
 func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister, maxraftstate int) *KVServer {
 	// call labgob.Register on structures you want
 	// Go's RPC library to marshall/unmarshall.

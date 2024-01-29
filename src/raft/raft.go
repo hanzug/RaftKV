@@ -320,7 +320,7 @@ func (rf *Raft) ticker() {
 func (rf *Raft) applier() {
 	for rf.killed() == false {
 		rf.mu.Lock()
-		// if there is no need to apply entries, just release CPU and wait other goroutine's signal if they commit new entries
+		//等待BroadcastHeartbeat(false) 唤醒
 		for rf.lastApplied >= rf.commitIndex {
 			rf.applyCond.Wait()
 		}
