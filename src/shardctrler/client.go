@@ -46,12 +46,15 @@ func (ck *Clerk) Move(shard int, gid int) {
 	ck.Command(&CommandRequest{Shard: shard, GID: gid, Op: OpMove})
 }
 
+//
+//
 // you can send an RPC with code like this:
 // ok := ck.servers[i].Call("ShardCtrler.Command", &request, &response)
 //
 // the types of args and reply (including whether they are pointers)
 // must match the declared types of the RPC handler function's
 // arguments. and reply must be passed as a pointer.
+//
 func (ck *Clerk) Command(request *CommandRequest) Config {
 	request.ClientId, request.CommandId = ck.clientId, ck.commandId
 	for {
