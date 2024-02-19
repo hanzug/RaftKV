@@ -1,22 +1,5 @@
 package raft
 
-//
-// this is an outline of the API that raft must expose to
-// the service (or tester). see comments below for
-// each of these functions for more details.
-//
-// rf = Make(...)
-//   create a new Raft server.
-// rf.Start(command interface{}) (index, term, isleader)
-//   start agreement on a new log entry
-// rf.GetState() (term, isLeader)
-//   ask a Raft for its current term, and whether it thinks it is leader
-// ApplyMsg
-//   each time a new entry is committed to the log, each Raft peer
-//   should send an ApplyMsg to the service (or tester)
-//   in the same server.
-//
-
 import (
 	"6.824/labgob"
 	"6.824/labrpc"
@@ -29,7 +12,6 @@ import (
 	"time"
 )
 
-// A Go object implementing a single Raft peer.
 type Raft struct {
 	mu        sync.RWMutex        // Lock to protect shared access to this peer's state
 	peers     []*labrpc.ClientEnd // RPC end points of all peers
@@ -94,7 +76,7 @@ func (rf *Raft) readPersist(data []byte) {
 		DPrintf("{Node %v} restores persisted state failed", rf.me)
 	}
 	rf.currentTerm, rf.votedFor, rf.logs = currentTerm, votedFor, logs
-	// there will always be at least one entry in rf.logs
+	// logs[0]存放两个index
 	rf.lastApplied, rf.commitIndex = rf.logs[0].Index, rf.logs[0].Index
 }
 

@@ -37,32 +37,27 @@ type ShardKV struct {
 	Lis            net.Listener
 }
 
-// servers[] contains the ports of the servers in this group.
+// servers[] 包含该组中服务器的端口。
 //
-// me is the index of the current server in servers[].
+// me 是当前服务器在 servers[] 中的索引。
 //
-// the k/v server should store snapshots through the underlying Raft
-// implementation, which should call persister.SaveStateAndSnapshot() to
-// atomically save the Raft state along with the snapshot.
+// k/v 服务器应通过底层 Raft 来存储快照。
+// 实现来存储快照，该实现应调用 persister.SaveStateAndSnapshot()
+// 原子式地保存 Raft 状态和快照。
 //
-// the k/v server should snapshot when Raft's saved state exceeds
-// maxRaftState bytes, in order to allow Raft to garbage-collect its
-// log. if maxRaftState is -1, you don't need to snapshot.
+// 当 Raft 保存的状态超过
+// maxRaftState 字节时，K/V 服务器应该进行快照，以便让 Raft 能够收集垃圾日志。
+// 如果 maxRaftState 为-1，则不需要快照。
 //
-// gid is this group's GID, for interacting with the shardctrler.
+// gid 是该组的 GID，用于与shardctrler交互。
 //
-// pass ctrlers[] to shardctrler.MakeClerk() so you can send
+// 把ctrlers[]传给shardctrler.MakeClerk()，这样就可以向shardctrler发送
 // RPCs to the shardctrler.
 //
-// make_end(servername) turns a server name from a
-// Config.Groups[gid][i] into a labrpc.ClientEnd on which you can
-// send RPCs. You'll need this to send RPCs to other groups.
-//
-// look at client.go for examples of how to use ctrlers[]
-// and make_end() to send RPCs to the group owning a specific shard.
-//
-// StartServer() must return quickly, so it should start goroutines
-// for any long-running work.
+// make_end(servername) 将服务器名称从
+// 配置.Groups[gid][i]中的服务器名称变成一个 labrpc.ClientEnd 服务器端，这样就可以在其上
+// 发送 RPC。向其他组发送 RPC 时需要使用此功能。
+// StartServer() 必须快速返回，因此它应该启动 goroutines
 func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister, maxRaftState int, gid int, ctrlers []*labrpc.ClientEnd, makeEnd func(string) *labrpc.ClientEnd) *ShardKV {
 
 	zap.S().Info(utils.GetCurrentFunctionName())
