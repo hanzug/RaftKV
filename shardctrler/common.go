@@ -42,7 +42,7 @@ func (cf Config) String() string {
 	return fmt.Sprintf("{Num:%v,Shards:%v,Groups:%v}", cf.Num, cf.Shards, cf.Groups)
 }
 
-const ExecuteTimeout = 500 * time.Millisecond
+const ExecuteTimeout = 5 * time.Second
 
 const Debug = false
 

@@ -1,7 +1,8 @@
 package shardctrler
 
 import (
-	"sort"
+	"6.824/utils"
+	"go.uber.org/zap"
 )
 
 type ConfigStateMachine interface {
@@ -22,6 +23,9 @@ func NewMemoryConfigStateMachine() *MemoryConfigStateMachine {
 }
 
 func (cf *MemoryConfigStateMachine) Join(groups map[int][]string) Err {
+
+	zap.S().Warn(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	lastConfig := cf.Configs[len(cf.Configs)-1]
 	newConfig := Config{len(cf.Configs), lastConfig.Shards, deepCopy(lastConfig.Groups)}
 	for gid, servers := range groups {
@@ -31,27 +35,34 @@ func (cf *MemoryConfigStateMachine) Join(groups map[int][]string) Err {
 			newConfig.Groups[gid] = newServers
 		}
 	}
-	s2g := Group2Shards(newConfig)
+	g2s := Group2Shards(newConfig)
 	for {
-		source, target := GetGIDWithMaximumShards(s2g), GetGIDWithMinimumShards(s2g)
-		if source != 0 && len(s2g[source])-len(s2g[target]) <= 1 {
+		source, target := GetGIDWithMaximumShards(g2s), GetGIDWithMinimumShards(g2s)
+		if source != 0 && len(g2s[source])-len(g2s[target]) <= 1 {
 			break
 		}
-		s2g[target] = append(s2g[target], s2g[source][0])
-		s2g[source] = s2g[source][1:]
+		if source == target {
+			break
+		}
+		g2s[target] = append(g2s[target], g2s[source][0])
+		g2s[source] = g2s[source][1:]
 	}
 	var newShards [NShards]int
-	for gid, shards := range s2g {
+	for gid, shards := range g2s {
 		for _, shard := range shards {
 			newShards[shard] = gid
 		}
 	}
 	newConfig.Shards = newShards
 	cf.Configs = append(cf.Configs, newConfig)
+	zap.S().Warn(zap.Any("cf", cf.Configs))
 	return OK
 }
 
 func (cf *MemoryConfigStateMachine) Leave(gids []int) Err {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	lastConfig := cf.Configs[len(cf.Configs)-1]
 	newConfig := Config{len(cf.Configs), lastConfig.Shards, deepCopy(lastConfig.Groups)}
 	s2g := Group2Shards(newConfig)
@@ -84,6 +95,9 @@ func (cf *MemoryConfigStateMachine) Leave(gids []int) Err {
 }
 
 func (cf *MemoryConfigStateMachine) Move(shard, gid int) Err {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	lastConfig := cf.Configs[len(cf.Configs)-1]
 	newConfig := Config{len(cf.Configs), lastConfig.Shards, deepCopy(lastConfig.Groups)}
 	newConfig.Shards[shard] = gid
@@ -92,6 +106,9 @@ func (cf *MemoryConfigStateMachine) Move(shard, gid int) Err {
 }
 
 func (cf *MemoryConfigStateMachine) Query(num int) (Config, Err) {
+
+	zap.S().Warn(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	if num < 0 || num >= len(cf.Configs) {
 		return cf.Configs[len(cf.Configs)-1], OK
 	}
@@ -99,49 +116,40 @@ func (cf *MemoryConfigStateMachine) Query(num int) (Config, Err) {
 }
 
 func Group2Shards(config Config) map[int][]int {
-	s2g := make(map[int][]int)
+
+	g2s := make(map[int][]int)
 	for gid := range config.Groups {
-		s2g[gid] = make([]int, 0)
+		g2s[gid] = make([]int, 0)
 	}
 	for shard, gid := range config.Shards {
-		s2g[gid] = append(s2g[gid], shard)
+		g2s[gid] = append(g2s[gid], shard)
 	}
-	return s2g
+	return g2s
 }
 
-func GetGIDWithMinimumShards(s2g map[int][]int) int {
+func GetGIDWithMinimumShards(g2s map[int][]int) int {
 	// make iteration deterministic
-	var keys []int
-	for k := range s2g {
-		keys = append(keys, k)
-	}
-	sort.Ints(keys)
-	// find GID with minimum shards
-	index, min := -1, NShards+1
-	for _, gid := range keys {
-		if gid != 0 && len(s2g[gid]) < min {
-			index, min = gid, len(s2g[gid])
+
+	var index = 0
+	var l = 100000000
+	for k, v := range g2s {
+		if len(v) < l {
+			index = k
+			l = len(v)
 		}
 	}
+
 	return index
 }
 
-func GetGIDWithMaximumShards(s2g map[int][]int) int {
+func GetGIDWithMaximumShards(g2s map[int][]int) int {
 	// always choose gid 0 if there is any
-	if shards, ok := s2g[0]; ok && len(shards) > 0 {
-		return 0
-	}
-	// make iteration deterministic
-	var keys []int
-	for k := range s2g {
-		keys = append(keys, k)
-	}
-	sort.Ints(keys)
-	// find GID with maximum shards
-	index, max := -1, -1
-	for _, gid := range keys {
-		if len(s2g[gid]) > max {
-			index, max = gid, len(s2g[gid])
+	var index = 0
+	var l = 0
+	for k, v := range g2s {
+		if len(v) > l {
+			index = k
+			l = len(v)
 		}
 	}
 	return index

@@ -17,7 +17,6 @@ func DPrintf(format string, a ...interface{}) {
 	}
 }
 
-//
 // as each Raft peer becomes aware that successive log entries are
 // committed, the peer should send an ApplyMsg to the service (or
 // tester) on the same server, via the applyCh passed to Make(). set
@@ -27,7 +26,6 @@ func DPrintf(format string, a ...interface{}) {
 // in part 2D you'll want to send other kinds of messages (e.g.,
 // snapshots) on the applyCh, but set CommandValid to false for these
 // other uses.
-//
 type ApplyMsg struct {
 	CommandValid bool
 	Command      interface{}
@@ -96,8 +94,8 @@ var globalRand = &lockedRand{
 }
 
 const (
-	HeartbeatTimeout = 125
-	ElectionTimeout  = 1000
+	HeartbeatTimeout = 1250 * 7
+	ElectionTimeout  = 10000
 )
 
 func StableHeartbeatTimeout() time.Duration {

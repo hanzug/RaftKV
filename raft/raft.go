@@ -20,7 +20,10 @@ package raft
 import (
 	"6.824/labgob"
 	"6.824/labrpc"
+	"6.824/utils"
 	"bytes"
+	"go.uber.org/zap"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -50,6 +53,8 @@ type Raft struct {
 
 	electionTimer  *time.Timer
 	heartbeatTimer *time.Timer
+
+	Lis net.Listener
 }
 
 // return currentTerm and whether this server
@@ -75,6 +80,7 @@ func (rf *Raft) persist() {
 
 // restore previously persisted state.
 func (rf *Raft) readPersist(data []byte) {
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	if data == nil || len(data) == 0 {
 		return
 	}
@@ -104,6 +110,7 @@ func (rf *Raft) encodeState() []byte {
 // A service wants to switch to snapshot.  Only do so if Raft hasn't
 // have more recent info since it communicate the snapshot on applyCh.
 func (rf *Raft) CondInstallSnapshot(lastIncludedTerm int, lastIncludedIndex int, snapshot []byte) bool {
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	DPrintf("{Node %v} service calls CondInstallSnapshot with lastIncludedTerm %v and lastIncludedIndex %v to check whether snapshot is still valid in term %v", rf.me, lastIncludedTerm, lastIncludedIndex, rf.currentTerm)
@@ -134,6 +141,7 @@ func (rf *Raft) CondInstallSnapshot(lastIncludedTerm int, lastIncludedIndex int,
 // service no longer needs the log through (and including)
 // that index. Raft should now trim its log as much as possible.
 func (rf *Raft) Snapshot(index int, snapshot []byte) {
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	snapshotIndex := rf.getFirstLog().Index
@@ -147,7 +155,8 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 	DPrintf("{Node %v}'s state is {state %v,term %v,commitIndex %v,lastApplied %v,firstLog %v,lastLog %v} after replacing log with snapshotIndex %v as old snapshotIndex %v is smaller", rf.me, rf.state, rf.currentTerm, rf.commitIndex, rf.lastApplied, rf.getFirstLog(), rf.getLastLog(), index, snapshotIndex)
 }
 
-func (rf *Raft) RequestVote(request *RequestVoteRequest, response *RequestVoteResponse) {
+func (rf *Raft) RequestVote(request *RequestVoteRequest, response *RequestVoteResponse) (err error) {
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
@@ -168,9 +177,12 @@ func (rf *Raft) RequestVote(request *RequestVoteRequest, response *RequestVoteRe
 	rf.votedFor = request.CandidateId
 	rf.electionTimer.Reset(RandomizedElectionTimeout())
 	response.Term, response.VoteGranted = rf.currentTerm, true
+
+	return err
 }
 
-func (rf *Raft) AppendEntries(request *AppendEntriesRequest, response *AppendEntriesResponse) {
+func (rf *Raft) AppendEntries(request *AppendEntriesRequest, response *AppendEntriesResponse) (err error) {
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
@@ -222,9 +234,14 @@ func (rf *Raft) AppendEntries(request *AppendEntriesRequest, response *AppendEnt
 	rf.advanceCommitIndexForFollower(request.LeaderCommit)
 
 	response.Term, response.Success = rf.currentTerm, true
+
+	zap.S().Info("-----------follower handle entries success---------------")
+
+	return nil
 }
 
-func (rf *Raft) InstallSnapshot(request *InstallSnapshotRequest, response *InstallSnapshotResponse) {
+func (rf *Raft) InstallSnapshot(request *InstallSnapshotRequest, response *InstallSnapshotResponse) (err error) {
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer DPrintf("{Node %v}'s state is {state %v,term %v,commitIndex %v,lastApplied %v,firstLog %v,lastLog %v} before processing InstallSnapshotRequest %v and reply InstallSnapshotResponse %v", rf.me, rf.state, rf.currentTerm, rf.commitIndex, rf.lastApplied, rf.getFirstLog(), rf.getLastLog(), request, response)
@@ -256,6 +273,8 @@ func (rf *Raft) InstallSnapshot(request *InstallSnapshotRequest, response *Insta
 			SnapshotIndex: request.LastIncludedIndex,
 		}
 	}()
+
+	return err
 }
 
 // example code to send a RPC to a server.
@@ -286,18 +305,77 @@ func (rf *Raft) InstallSnapshot(request *InstallSnapshotRequest, response *Insta
 // that the caller passes the address of the reply struct with &, not
 // the struct itself.
 func (rf *Raft) sendRequestVote(server int, request *RequestVoteRequest, response *RequestVoteResponse) bool {
-	return rf.peers[server].Call("Raft.RequestVote", request, response)
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
+	if rf.peers[server].Rpc == nil {
+		tmp := utils.MakeEnd(rf.peers[server].Endname)
+		if tmp == nil {
+			return false
+		}
+		rf.peers[server].Rpc = tmp.Rpc
+	}
+	err := rf.peers[server].Rpc.Call("Raft.RequestVote", request, response)
+	if err != nil {
+		zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()), zap.Any("response", err))
+		return false
+	}
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()), zap.Any("response", response))
+	return true
 }
 
 func (rf *Raft) sendAppendEntries(server int, request *AppendEntriesRequest, response *AppendEntriesResponse) bool {
-	return rf.peers[server].Call("Raft.AppendEntries", request, response)
+
+	//zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
+	if rf.peers[server].Rpc == nil {
+		tmp := utils.MakeEnd(rf.peers[server].Endname)
+		if tmp == nil {
+			return false
+		}
+		rf.peers[server].Rpc = tmp.Rpc
+	}
+
+	if rf.peers[server].Rpc == nil {
+		return false
+	}
+
+	err := rf.peers[server].Rpc.Call("Raft.AppendEntries", request, response)
+
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 func (rf *Raft) sendInstallSnapshot(server int, request *InstallSnapshotRequest, response *InstallSnapshotResponse) bool {
-	return rf.peers[server].Call("Raft.InstallSnapshot", request, response)
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
+	if rf.peers[server].Rpc == nil {
+		tmp := utils.MakeEnd(rf.peers[server].Endname)
+		if tmp == nil {
+			return false
+		}
+		rf.peers[server].Rpc = tmp.Rpc
+	}
+
+	if rf.peers[server].Rpc == nil {
+		return false
+	}
+
+	err := rf.peers[server].Rpc.Call("Raft.InstallSnapshot", request, response)
+
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 func (rf *Raft) StartElection() {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	request := rf.genRequestVoteRequest()
 	DPrintf("{Node %v} starts election with RequestVoteRequest %v", rf.me, request)
 	// use Closure
@@ -320,6 +398,7 @@ func (rf *Raft) StartElection() {
 						if grantedVotes > len(rf.peers)/2 {
 							DPrintf("{Node %v} receives majority votes in term %v", rf.me, rf.currentTerm)
 							rf.ChangeState(StateLeader)
+
 							rf.BroadcastHeartbeat(true)
 						}
 					} else if response.Term > rf.currentTerm {
@@ -335,26 +414,36 @@ func (rf *Raft) StartElection() {
 }
 
 func (rf *Raft) BroadcastHeartbeat(isHeartBeat bool) {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	for peer := range rf.peers {
 		if peer == rf.me {
 			continue
 		}
 		if isHeartBeat {
+			zap.S().Infof("leader %d broad heartbeat to follower %d\n", rf.me, peer)
+			//zap.S().Info(zap.Any("state: ", rf.state))
 			// need sending at once to maintain leadership
 			go rf.replicateOneRound(peer)
 		} else {
 			// just signal replicator goroutine to send entries in batch
+			zap.S().Infof("leader %d append Entry to follower %d\n", rf.me, peer)
 			rf.replicatorCond[peer].Signal()
 		}
 	}
 }
 
 func (rf *Raft) replicateOneRound(peer int) {
+
+	//zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	rf.mu.RLock()
 	if rf.state != StateLeader {
 		rf.mu.RUnlock()
 		return
 	}
+
 	prevLogIndex := rf.nextIndex[peer] - 1
 	if prevLogIndex < rf.getFirstLog().Index {
 		// only snapshot can catch up
@@ -380,6 +469,9 @@ func (rf *Raft) replicateOneRound(peer int) {
 }
 
 func (rf *Raft) genRequestVoteRequest() *RequestVoteRequest {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	lastLog := rf.getLastLog()
 	return &RequestVoteRequest{
 		Term:         rf.currentTerm,
@@ -390,6 +482,9 @@ func (rf *Raft) genRequestVoteRequest() *RequestVoteRequest {
 }
 
 func (rf *Raft) genAppendEntriesRequest(prevLogIndex int) *AppendEntriesRequest {
+
+	//zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	firstIndex := rf.getFirstLog().Index
 	entries := make([]Entry, len(rf.logs[prevLogIndex+1-firstIndex:]))
 	copy(entries, rf.logs[prevLogIndex+1-firstIndex:])
@@ -404,6 +499,9 @@ func (rf *Raft) genAppendEntriesRequest(prevLogIndex int) *AppendEntriesRequest 
 }
 
 func (rf *Raft) handleAppendEntriesResponse(peer int, request *AppendEntriesRequest, response *AppendEntriesResponse) {
+
+	//zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	if rf.state == StateLeader && rf.currentTerm == request.Term {
 		if response.Success {
 			rf.matchIndex[peer] = request.PrevLogIndex + len(request.Entries)
@@ -432,6 +530,9 @@ func (rf *Raft) handleAppendEntriesResponse(peer int, request *AppendEntriesRequ
 }
 
 func (rf *Raft) genInstallSnapshotRequest() *InstallSnapshotRequest {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	firstLog := rf.getFirstLog()
 	return &InstallSnapshotRequest{
 		Term:              rf.currentTerm,
@@ -443,7 +544,11 @@ func (rf *Raft) genInstallSnapshotRequest() *InstallSnapshotRequest {
 }
 
 func (rf *Raft) handleInstallSnapshotResponse(peer int, request *InstallSnapshotRequest, response *InstallSnapshotResponse) {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	if rf.state == StateLeader && rf.currentTerm == request.Term {
+
 		if response.Term > rf.currentTerm {
 			rf.ChangeState(StateFollower)
 			rf.currentTerm, rf.votedFor = response.Term, -1
@@ -456,6 +561,9 @@ func (rf *Raft) handleInstallSnapshotResponse(peer int, request *InstallSnapshot
 }
 
 func (rf *Raft) ChangeState(state NodeState) {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	if rf.state == state {
 		return
 	}
@@ -478,6 +586,9 @@ func (rf *Raft) ChangeState(state NodeState) {
 
 // used to compute and advance commitIndex by matchIndex[]
 func (rf *Raft) advanceCommitIndexForLeader() {
+
+	//zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	n := len(rf.matchIndex)
 	srt := make([]int, n)
 	copy(srt, rf.matchIndex)
@@ -486,17 +597,21 @@ func (rf *Raft) advanceCommitIndexForLeader() {
 	if newCommitIndex > rf.commitIndex {
 		// only advance commitIndex for current term's log
 		if rf.matchLog(rf.currentTerm, newCommitIndex) {
-			DPrintf("{Node %d} advance commitIndex from %d to %d with matchIndex %v in term %d", rf.me, rf.commitIndex, newCommitIndex, rf.matchIndex, rf.currentTerm)
+			zap.S().Info("-----------------{Node %d} advance commitIndex from %d to %d with matchIndex %v in term %d", rf.me, rf.commitIndex, newCommitIndex, rf.matchIndex, rf.currentTerm)
 			rf.commitIndex = newCommitIndex
 			rf.applyCond.Signal()
 		} else {
-			DPrintf("{Node %d} can not advance commitIndex from %d because the term of newCommitIndex %d is not equal to currentTerm %d", rf.me, rf.commitIndex, newCommitIndex, rf.currentTerm)
+			zap.S().Info("-----------------{Node %d} can not advance commitIndex from %d because the term of newCommitIndex %d is not equal to currentTerm %d", rf.me, rf.commitIndex, newCommitIndex, rf.currentTerm)
+			zap.S().Info(zap.Any("current term = ", rf.currentTerm), zap.Any("newCommitIndex = ", newCommitIndex))
 		}
 	}
 }
 
 // used to advance commitIndex by leaderCommit
 func (rf *Raft) advanceCommitIndexForFollower(leaderCommit int) {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	newCommitIndex := Min(leaderCommit, rf.getLastLog().Index)
 	if newCommitIndex > rf.commitIndex {
 		DPrintf("{Node %d} advance commitIndex from %d to %d with leaderCommit %d in term %d", rf.me, rf.commitIndex, newCommitIndex, leaderCommit, rf.currentTerm)
@@ -561,13 +676,16 @@ func (rf *Raft) HasLogInCurrentTerm() bool {
 // term. the third return value is true if this server believes it is
 // the leader.
 func (rf *Raft) Start(command interface{}) (int, int, bool) {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	if rf.state != StateLeader {
 		return -1, -1, false
 	}
 	newLog := rf.appendNewEntry(command)
-	DPrintf("{Node %v} receives a new command[%v] to replicate in term %v", rf.me, newLog, rf.currentTerm)
+	zap.S().Infof("{Node %v} receives a new command[%v] to replicate in term %v", rf.me, newLog, rf.currentTerm)
 	rf.BroadcastHeartbeat(false)
 	return newLog.Index, newLog.Term, true
 }
@@ -596,6 +714,9 @@ func (rf *Raft) Me() int {
 // The ticker go routine starts a new election if this peer hasn't received
 // heartbeats recently.
 func (rf *Raft) ticker() {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	for rf.killed() == false {
 		select {
 		case <-rf.electionTimer.C:
@@ -618,11 +739,16 @@ func (rf *Raft) ticker() {
 
 // a dedicated applier goroutine to guarantee that each log will be push into applyCh exactly once, ensuring that service's applying entries and raft's committing entries can be parallel
 func (rf *Raft) applier() {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	for rf.killed() == false {
 		rf.mu.Lock()
 		// if there is no need to apply entries, just release CPU and wait other goroutine's signal if they commit new entries
 		for rf.lastApplied >= rf.commitIndex {
+
 			rf.applyCond.Wait()
+
 		}
 		firstIndex, commitIndex, lastApplied := rf.getFirstLog().Index, rf.commitIndex, rf.lastApplied
 		entries := make([]Entry, commitIndex-lastApplied)
@@ -637,7 +763,7 @@ func (rf *Raft) applier() {
 			}
 		}
 		rf.mu.Lock()
-		DPrintf("{Node %v} applies entries %v-%v in term %v", rf.me, rf.lastApplied, commitIndex, rf.currentTerm)
+		zap.S().Infof("{Node %v} applies entries %v-%v in term %v", rf.me, rf.lastApplied, commitIndex, rf.currentTerm)
 		// use commitIndex rather than rf.commitIndex because rf.commitIndex may change during the Unlock() and Lock()
 		// use Max(rf.lastApplied, commitIndex) rather than commitIndex directly to avoid concurrently InstallSnapshot rpc causing lastApplied to rollback
 		rf.lastApplied = Max(rf.lastApplied, commitIndex)
@@ -646,6 +772,9 @@ func (rf *Raft) applier() {
 }
 
 func (rf *Raft) replicator(peer int) {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	rf.replicatorCond[peer].L.Lock()
 	defer rf.replicatorCond[peer].L.Unlock()
 	for rf.killed() == false {
@@ -659,17 +788,12 @@ func (rf *Raft) replicator(peer int) {
 	}
 }
 
-// the service or tester wants to create a Raft server. the ports
-// of all the Raft servers (including this one) are in peers[]. this
-// server's port is peers[me]. all the servers' peers[] arrays
-// have the same order. persister is a place for this server to
-// save its persistent state, and also initially holds the most
-// recent saved state, if any. applyCh is a channel on which the
-// tester or service expects Raft to send ApplyMsg messages.
-// Make() must return quickly, so it should start goroutines
-// for any long-running work.
+// Make 初始化Raft，设置计时器, 设置applier协程，为每一个peer设置复制协程
 func Make(peers []*labrpc.ClientEnd, me int,
 	persister *Persister, applyCh chan ApplyMsg) *Raft {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	rf := &Raft{
 		peers:          peers,
 		persister:      persister,
@@ -698,6 +822,9 @@ func Make(peers []*labrpc.ClientEnd, me int,
 			go rf.replicator(i)
 		}
 	}
+
+	//与peers建立连接
+	//rpcInit(rf)
 	// start ticker goroutine to start elections
 	go rf.ticker()
 	// start applier goroutine to push committed logs into applyCh exactly once

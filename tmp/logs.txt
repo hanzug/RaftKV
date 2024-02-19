@@ -1,0 +1,101 @@
+1.708326999474509e+09	warn	shardkv/server.go:135	{Node 0}{Group 0} tries to apply message {Command:{Type:EmptyEntry,Data:<nil>},CommandTerm:1,CommandIndex:1}	{"serviceName": "myapp"}
+1.7083270062910159e+09	warn	shardkv/server.go:135	{Node 2}{Group 0} tries to apply message {Command:{Type:EmptyEntry,Data:<nil>},CommandTerm:1,CommandIndex:1}	{"serviceName": "myapp"}
+1.7083270062910159e+09	warn	shardkv/server.go:135	{Node 1}{Group 0} tries to apply message {Command:{Type:EmptyEntry,Data:<nil>},CommandTerm:1,CommandIndex:1}	{"serviceName": "myapp"}
+1.7083270113694468e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270113694468e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270113804383e+09	warn	shardctrler/configStateMachine.go:27	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Join <nil>}	{"serviceName": "myapp"}
+1.7083270113804383e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270113804383e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.708327011380943e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.708327011380943e+09	warn	shardctrler/configStateMachine.go:58	{cf 23 0  [{Num:0,Shards:[0 0 0 0 0 0 0 0 0 0],Groups:map[]} {Num:1,Shards:[0 0 0 0 0 0 0 0 0 0],Groups:map[0:[localhost:9111 localhost:9112 localhost:9113]]}]}	{"serviceName": "myapp"}
+1.708327011380943e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270123792968e+09	warn	shardctrler/configStateMachine.go:27	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Join <nil>}	{"serviceName": "myapp"}
+1.7083270123792968e+09	warn	shardctrler/configStateMachine.go:27	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Join <nil>}	{"serviceName": "myapp"}
+1.7083270123798063e+09	warn	shardctrler/configStateMachine.go:58	{cf 23 0  [{Num:0,Shards:[0 0 0 0 0 0 0 0 0 0],Groups:map[]} {Num:1,Shards:[0 0 0 0 0 0 0 0 0 0],Groups:map[0:[localhost:9111 localhost:9112 localhost:9113]]}]}	{"serviceName": "myapp"}
+1.7083270123798063e+09	warn	shardctrler/configStateMachine.go:58	{cf 23 0  [{Num:0,Shards:[0 0 0 0 0 0 0 0 0 0],Groups:map[]} {Num:1,Shards:[0 0 0 0 0 0 0 0 0 0],Groups:map[0:[localhost:9111 localhost:9112 localhost:9113]]}]}	{"serviceName": "myapp"}
+1.7083270123792968e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270123803515e+09	warn	shardkv/server.go:135	{Node 0}{Group 0} tries to apply message {Command:{Type:Configuration,Data:{Num:1,Shards:[0 0 0 0 0 0 0 0 0 0],Groups:map[0:[localhost:9111 localhost:9112 localhost:9113]]}},CommandTerm:1,CommandIndex:2}	{"serviceName": "myapp"}
+1.7083270133866756e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270133866756e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270133866756e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270143981025e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270143980467e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270143981025e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270150491579e+09	warn	shardkv/server.go:135	{Node 2}{Group 0} tries to apply message {Command:{Type:Configuration,Data:{Num:1,Shards:[0 0 0 0 0 0 0 0 0 0],Groups:map[0:[localhost:9111 localhost:9112 localhost:9113]]}},CommandTerm:1,CommandIndex:2}	{"serviceName": "myapp"}
+1.7083270150491579e+09	warn	shardkv/server.go:135	{Node 1}{Group 0} tries to apply message {Command:{Type:Configuration,Data:{Num:1,Shards:[0 0 0 0 0 0 0 0 0 0],Groups:map[0:[localhost:9111 localhost:9112 localhost:9113]]}},CommandTerm:1,CommandIndex:2}	{"serviceName": "myapp"}
+1.7083270154059355e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270154059355e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270154059355e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270158137088e+09	warn	shardkv/client.go:63	{func 15 0 Get(key string) string <nil>}	{"serviceName": "myapp"}
+1.7083270158137088e+09	warn	shardkv/client.go:73	{func 15 0 Command(request *CommandRequest) string <nil>}	{"serviceName": "myapp"}
+1.7083270158137088e+09	warn	shardkv/client.go:82	gid:{gid 11 0  <nil>}	{"serviceName": "myapp"}
+1.7083270164179237e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270164179237e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270164179237e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270174307342e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270174307342e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270174307342e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270184447577e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270184447577e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270184448123e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270194461498e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270194461498e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270194461498e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.708327020123019e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.708327020123019e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270204483902e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270208264065e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270208264065e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.70832702082635e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270208264065e+09	warn	shardkv/client.go:126	{ 23 0  {config 25 0  {Num:1,Shards:[0 0 0 0 0 0 0 0 0 0],Groups:map[0:[localhost:9111 localhost:9112 localhost:9113]]}}}	{"serviceName": "myapp"}
+1.7083270208269103e+09	warn	shardkv/client.go:82	gid:{gid 11 0  <nil>}	{"serviceName": "myapp"}
+1.708327020830066e+09	warn	shardkv/server.go:301	6.824/shardkv.(*ShardKV).Command	{"serviceName": "myapp"}
+1.7083270208305814e+09	warn	shardkv/server.go:135	{Node 0}{Group 0} tries to apply message {Command:{Type:Operation,Data:Shard:9,Key:1,Value:1,Op:OpPut,ClientId:3010140562044005377,CommandId:0}},CommandTerm:1,CommandIndex:3}	{"serviceName": "myapp"}
+1.7083270208306332e+09	warn	shardkv/server.go:192	6.824/shardkv.(*ShardKV).applyOperation	{"serviceName": "myapp"}
+1.7083270208306332e+09	warn	shardkv/server.go:195	shardID{shardid 11 9  <nil>}	{"serviceName": "myapp"}
+1.7083270208306332e+09	warn	shardkv/server.go:281	6.824/shardkv.(*ShardKV).applyLogToStateMachines	{"serviceName": "myapp"}
+1.7083270208306332e+09	warn	shardkv/client.go:106	{ 27 0  <nil>} {response 25 0  OK}	{"serviceName": "myapp"}
+1.7083270214509823e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270214509823e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270214509823e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.708327022453305e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.708327022453305e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.708327022453305e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270224930844e+09	warn	shardkv/client.go:58	{func 15 0 Get(key string) string <nil>}	{"serviceName": "myapp"}
+1.7083270224930844e+09	warn	shardkv/client.go:73	{func 15 0 Command(request *CommandRequest) string <nil>}	{"serviceName": "myapp"}
+1.7083270224930844e+09	warn	shardkv/client.go:82	gid:{gid 11 0  <nil>}	{"serviceName": "myapp"}
+1.7083270224942253e+09	warn	shardkv/server.go:301	6.824/shardkv.(*ShardKV).Command	{"serviceName": "myapp"}
+1.7083270224947317e+09	warn	shardkv/server.go:135	{Node 2}{Group 0} tries to apply message {Command:{Type:Operation,Data:Shard:9,Key:1,Value:1,Op:OpPut,ClientId:3010140562044005377,CommandId:0}},CommandTerm:1,CommandIndex:3}	{"serviceName": "myapp"}
+1.7083270224947317e+09	warn	shardkv/server.go:135	{Node 0}{Group 0} tries to apply message {Command:{Type:Operation,Data:Shard:9,Key:1,Value:,Op:OpGet,ClientId:3010140562044005377,CommandId:1}},CommandTerm:1,CommandIndex:4}	{"serviceName": "myapp"}
+1.7083270224947317e+09	warn	shardkv/server.go:135	{Node 1}{Group 0} tries to apply message {Command:{Type:Operation,Data:Shard:9,Key:1,Value:1,Op:OpPut,ClientId:3010140562044005377,CommandId:0}},CommandTerm:1,CommandIndex:3}	{"serviceName": "myapp"}
+1.7083270224947317e+09	warn	shardkv/server.go:192	6.824/shardkv.(*ShardKV).applyOperation	{"serviceName": "myapp"}
+1.7083270224947317e+09	warn	shardkv/server.go:192	6.824/shardkv.(*ShardKV).applyOperation	{"serviceName": "myapp"}
+1.7083270224947317e+09	warn	shardkv/server.go:192	6.824/shardkv.(*ShardKV).applyOperation	{"serviceName": "myapp"}
+1.7083270224947317e+09	warn	shardkv/server.go:195	shardID{shardid 11 9  <nil>}	{"serviceName": "myapp"}
+1.7083270224947317e+09	warn	shardkv/server.go:195	shardID{shardid 11 9  <nil>}	{"serviceName": "myapp"}
+1.7083270224947317e+09	warn	shardkv/server.go:195	shardID{shardid 11 9  <nil>}	{"serviceName": "myapp"}
+1.7083270224952626e+09	warn	shardkv/server.go:281	6.824/shardkv.(*ShardKV).applyLogToStateMachines	{"serviceName": "myapp"}
+1.7083270224952626e+09	warn	shardkv/server.go:281	6.824/shardkv.(*ShardKV).applyLogToStateMachines	{"serviceName": "myapp"}
+1.708327022495327e+09	warn	shardkv/server.go:281	6.824/shardkv.(*ShardKV).applyLogToStateMachines	{"serviceName": "myapp"}
+1.708327022495327e+09	warn	shardkv/client.go:106	{ 27 0  <nil>} {response 25 0  OK}	{"serviceName": "myapp"}
+1.708327023466321e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.708327023466321e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.708327023466321e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270238069422e+09	warn	shardkv/server.go:135	{Node 1}{Group 0} tries to apply message {Command:{Type:Operation,Data:Shard:9,Key:1,Value:,Op:OpGet,ClientId:3010140562044005377,CommandId:1}},CommandTerm:1,CommandIndex:4}	{"serviceName": "myapp"}
+1.7083270238069422e+09	warn	shardkv/server.go:135	{Node 2}{Group 0} tries to apply message {Command:{Type:Operation,Data:Shard:9,Key:1,Value:,Op:OpGet,ClientId:3010140562044005377,CommandId:1}},CommandTerm:1,CommandIndex:4}	{"serviceName": "myapp"}
+1.7083270238074486e+09	warn	shardkv/server.go:192	6.824/shardkv.(*ShardKV).applyOperation	{"serviceName": "myapp"}
+1.7083270238074486e+09	warn	shardkv/server.go:192	6.824/shardkv.(*ShardKV).applyOperation	{"serviceName": "myapp"}
+1.7083270238074486e+09	warn	shardkv/server.go:195	shardID{shardid 11 9  <nil>}	{"serviceName": "myapp"}
+1.7083270238074486e+09	warn	shardkv/server.go:195	shardID{shardid 11 9  <nil>}	{"serviceName": "myapp"}
+1.7083270238074486e+09	warn	shardkv/server.go:281	6.824/shardkv.(*ShardKV).applyLogToStateMachines	{"serviceName": "myapp"}
+1.7083270238074486e+09	warn	shardkv/server.go:281	6.824/shardkv.(*ShardKV).applyLogToStateMachines	{"serviceName": "myapp"}
+1.7083270244781046e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270244781046e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270244781046e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270255001516e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270255001516e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270255001516e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.708327026509818e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.708327026509818e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.708327026509818e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}
+1.7083270288842516e+09	warn	shardctrler/configStateMachine.go:110	{func 15 0 6.824/shardctrler.(*MemoryConfigStateMachine).Query <nil>}	{"serviceName": "myapp"}

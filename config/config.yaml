@@ -1,0 +1,6 @@
+# "shardkv" or "shardctrler" or "client"
+
+role: "shardctrler"
+
+shardkv: ["localhost:9111", "localhost:9112", "localhost:9113"]
+shardctrler: ["localhost:9331", "localhost:9332", "localhost:9333"]

@@ -4,7 +4,10 @@ import (
 	"6.824/labgob"
 	"6.824/labrpc"
 	"6.824/raft"
+	"6.824/utils"
 	"fmt"
+	"go.uber.org/zap"
+	"net"
 	"sync/atomic"
 	"time"
 )
@@ -19,6 +22,8 @@ type ShardCtrler struct {
 	stateMachine   ConfigStateMachine            // Config stateMachine
 	lastOperations map[int64]OperationContext    // determine whether log is duplicated by recording the last commandId and response corresponding to the clientId
 	notifyChans    map[int]chan *CommandResponse // notify client goroutine by applier goroutine to response
+
+	Lis net.Listener
 }
 
 // servers[] contains the ports of the set of
@@ -26,6 +31,9 @@ type ShardCtrler struct {
 // form the fault-tolerant shardctrler service.
 // me is the index of the current server in servers[].
 func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister) *ShardCtrler {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	// call labgob.Register on structures you want
 	// Go's RPC library to marshall/unmarshall.
 	labgob.Register(Command{})
@@ -39,6 +47,9 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister)
 		lastOperations: make(map[int64]OperationContext),
 		notifyChans:    make(map[int]chan *CommandResponse),
 	}
+
+	rpcInit(sc)
+
 	// start applier goroutine to apply committed logs to stateMachine
 	go sc.applier()
 
@@ -48,10 +59,13 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister)
 
 // a dedicated applier goroutine to apply committed entries to stateMachine
 func (sc *ShardCtrler) applier() {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	for sc.killed() == false {
 		select {
 		case message := <-sc.applyCh:
-			DPrintf("{Node %v} tries to apply message %v", sc.rf.Me(), message)
+			zap.S().Infof("{Node %v} tries to apply message %v", sc.rf.Me(), message)
 			if message.CommandValid {
 				var response *CommandResponse
 				command := message.Command.(Command)
@@ -83,6 +97,9 @@ func (sc *ShardCtrler) applier() {
 }
 
 func (sc *ShardCtrler) applyLogToStateMachine(command Command) *CommandResponse {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	var config Config
 	var err Err
 	switch command.Op {
@@ -98,10 +115,13 @@ func (sc *ShardCtrler) applyLogToStateMachine(command Command) *CommandResponse 
 	return &CommandResponse{err, config}
 }
 
-func (sc *ShardCtrler) Command(request *CommandRequest, response *CommandResponse) {
-	defer DPrintf("{Node %v}'s state is {}, processes CommandRequest %v with CommandResponse %v", sc.rf.Me(), request, response)
+func (sc *ShardCtrler) Command(request *CommandRequest, response *CommandResponse) (err error) {
+
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+
 	// return result directly without raft layer's participation if request is duplicated
 	sc.mu.RLock()
+
 	if request.Op != OpQuery && sc.isDuplicateRequest(request.ClientId, request.CommandId) {
 		lastResponse := sc.lastOperations[request.ClientId].LastResponse
 		response.Config, response.Err = lastResponse.Config, lastResponse.Err
@@ -112,6 +132,7 @@ func (sc *ShardCtrler) Command(request *CommandRequest, response *CommandRespons
 	// do not hold lock to improve throughput
 	index, _, isLeader := sc.rf.Start(Command{request})
 	if !isLeader {
+		zap.S().Info("shardctrler.server.Command:ErrWrongLeader")
 		response.Err = ErrWrongLeader
 		return
 	}
@@ -122,6 +143,7 @@ func (sc *ShardCtrler) Command(request *CommandRequest, response *CommandRespons
 	case result := <-ch:
 		response.Config, response.Err = result.Config, result.Err
 	case <-time.After(ExecuteTimeout):
+		zap.S().Info("shardctrler.server.Command:ErrTimeOut")
 		response.Err = ErrTimeout
 	}
 	// release notifyChan to reduce memory footprint
@@ -131,6 +153,7 @@ func (sc *ShardCtrler) Command(request *CommandRequest, response *CommandRespons
 		sc.removeOutdatedNotifyChan(index)
 		sc.mu.Unlock()
 	}()
+	return
 }
 
 func (sc *ShardCtrler) getNotifyChan(index int) chan *CommandResponse {

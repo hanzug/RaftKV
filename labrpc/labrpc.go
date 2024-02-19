@@ -49,7 +49,10 @@ package labrpc
 //   pass svc to srv.AddService()
 //
 
-import "6.824/labgob"
+import (
+	"6.824/labgob"
+	"net/rpc"
+)
 import "bytes"
 import "reflect"
 import "sync"
@@ -73,10 +76,10 @@ type replyMsg struct {
 }
 
 type ClientEnd struct {
-	endname interface{}   // this end-point's name
+	Endname string        // this end-point's name
 	ch      chan reqMsg   // copy of Network.endCh
 	done    chan struct{} // closed when Network is cleaned up
-
+	Rpc     *rpc.Client
 }
 
 // send an RPC, wait for the reply.
@@ -84,7 +87,7 @@ type ClientEnd struct {
 // no reply was received from the server.
 func (e *ClientEnd) Call(svcMeth string, args interface{}, reply interface{}) bool {
 	req := reqMsg{}
-	req.endname = e.endname
+	req.endname = e.Endname
 	req.svcMeth = svcMeth
 	req.argsType = reflect.TypeOf(args)
 	req.replyCh = make(chan replyMsg)
@@ -311,7 +314,7 @@ func (rn *Network) processReq(req reqMsg) {
 
 // create a client end-point.
 // start the thread that listens and delivers.
-func (rn *Network) MakeEnd(endname interface{}) *ClientEnd {
+func (rn *Network) MakeEnd(endname string) *ClientEnd {
 	rn.mu.Lock()
 	defer rn.mu.Unlock()
 
@@ -320,7 +323,7 @@ func (rn *Network) MakeEnd(endname interface{}) *ClientEnd {
 	}
 
 	e := &ClientEnd{}
-	e.endname = endname
+	e.Endname = endname
 	e.ch = rn.endCh
 	e.done = rn.done
 	rn.ends[endname] = e

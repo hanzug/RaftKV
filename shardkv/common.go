@@ -17,11 +17,11 @@ import (
 //
 
 const (
-	ExecuteTimeout            = 500 * time.Millisecond
-	ConfigureMonitorTimeout   = 100 * time.Millisecond
-	MigrationMonitorTimeout   = 50 * time.Millisecond
-	GCMonitorTimeout          = 50 * time.Millisecond
-	EmptyEntryDetectorTimeout = 200 * time.Millisecond
+	ExecuteTimeout            = 5000 * time.Millisecond
+	ConfigureMonitorTimeout   = 1000 * time.Millisecond
+	MigrationMonitorTimeout   = 500 * time.Millisecond
+	GCMonitorTimeout          = 500 * time.Millisecond
+	EmptyEntryDetectorTimeout = 2000 * time.Millisecond
 )
 
 const Debug = false

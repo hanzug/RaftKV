@@ -1,6 +1,14 @@
 package raft
 
-import "fmt"
+import (
+	"6.824/global"
+	"fmt"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
+	"net"
+	"net/rpc"
+	"time"
+)
 
 type RequestVoteRequest struct {
 	Term         int
@@ -64,4 +72,31 @@ type InstallSnapshotResponse struct {
 
 func (response InstallSnapshotResponse) String() string {
 	return fmt.Sprintf("{Term:%v}", response.Term)
+}
+
+func rpcInit(raft *Raft) {
+
+	var err error
+
+	rpc.Register(raft)
+
+	for true {
+		raft.Lis, err = net.Listen("tcp", viper.GetStringSlice("shardkv_raft")[global.Me])
+		if err != nil {
+			zap.S().Error("Raft rcpInit failed")
+			time.Sleep(time.Second * 3)
+		} else {
+			break
+		}
+	}
+
+	for true {
+		for {
+			conn, err := raft.Lis.Accept()
+			if err != nil {
+				continue
+			}
+			go rpc.ServeConn(conn)
+		}
+	}
 }
