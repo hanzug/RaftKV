@@ -711,8 +711,7 @@ func (rf *Raft) Me() int {
 	return rf.me
 }
 
-// The ticker go routine starts a new election if this peer hasn't received
-// heartbeats recently.
+// ticker 计时器，负责触发Leader心跳和Follower选举
 func (rf *Raft) ticker() {
 
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
@@ -737,7 +736,6 @@ func (rf *Raft) ticker() {
 	}
 }
 
-// a dedicated applier goroutine to guarantee that each log will be push into applyCh exactly once, ensuring that service's applying entries and raft's committing entries can be parallel
 func (rf *Raft) applier() {
 
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
@@ -823,8 +821,6 @@ func Make(peers []*labrpc.ClientEnd, me int,
 		}
 	}
 
-	//与peers建立连接
-	//rpcInit(rf)
 	// start ticker goroutine to start elections
 	go rf.ticker()
 	// start applier goroutine to push committed logs into applyCh exactly once
