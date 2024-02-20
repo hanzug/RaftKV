@@ -19,7 +19,7 @@
 
 ### Raft状态
 
-<img src="https://raw.githubusercontent.com/hanzug/images/master/images/image-20240219170359817.png" alt="image-20240219170359817" style="zoom:50%;" />
+![image-20240220181028144](C:\Users\haria\AppData\Roaming\Typora\typora-user-images\image-20240220181028144.png)
 
 共 3 + n 个goroutine
 
@@ -31,7 +31,39 @@
 
 ### KV服务架构
 
-![image-20240220044458901](C:\Users\haria\AppData\Roaming\Typora\typora-user-images\image-20240220044458901.png)
+![image-20240220044458901](https://raw.githubusercontent.com/hanzug/images/master/images/image-20240220044458901.png)
 
 - 关于Raft层和状态机层的交互：命令到来的时候先调用Raft层接口，在Raft层共识确认后，通过channel通知状态机层来将命令持久化。
-- 关于持久化和快照：
+
+  
+
+
+
+
+
+## API：
+
+### Query()
+
+请求配置中心返回最新分片配置。调用方将返回结果的index与当前配置的index对比，决定是否替换配置。
+
+Client调用时机：
+
+1. 创建时Query
+2. 在对应Raft组返回错误时Query
+
+KV Server调用时机：
+
+1. goroutine监视配置，定期Query
+
+### Join(groups)
+
+加入新的KV server，加入后需要对分片配置进行负载均衡，目前采用的算法是：每次选择一个拥有 shard 数最多的 raft 组和一个拥有 shard 数最少的 raft，将前者管理的一个 shard 分给后者，周而复始，直到它们之前的差值小于等于 1 且 0 raft 组无 shard 为止。
+
+### Leave(groups)
+
+某个组离开后，需要将它的分片分给剩余的组。采用的算法为：每次将分片分配给分片最少的组。
+
+### Move(shard, gid)
+
+分片迁移只需要更改分片数组的值。迁移动作会在KV server获取到配置后执行。

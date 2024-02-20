@@ -520,7 +520,7 @@ func (kv *ShardKV) configureAction() {
 	for _, shard := range kv.stateMachines {
 		if shard.Status != Serving {
 			canPerformNextConfig = false
-			DPrintf("{Node %v}{Group %v} will not try to fetch latest configuration because shards status are %v when currentConfig is %v", kv.Rf.Me(), kv.gid, kv.getShardStatus(), kv.currentConfig)
+			zap.S().Infof("{Node %v}{Group %v} will not try to fetch latest configuration because shards status are %v when currentConfig is %v", kv.Rf.Me(), kv.gid, kv.getShardStatus(), kv.currentConfig)
 			break
 		}
 	}
