@@ -17,9 +17,7 @@
 
 
 
-### Raft状态
-
-![image-20240220181028144](C:\Users\haria\AppData\Roaming\Typora\typora-user-images\image-20240220181028144.png)
+### Raft层一般状态
 
 共 3 + n 个goroutine
 
@@ -29,7 +27,9 @@
 - **replicator**：当节点为Leader时，复制将条目推送到Follower，通过信号量触发，避免重复创建goroutine的消耗。
 - **RPC**：负责监听Leader的心跳、Leader传来的Entries、Candidate传来的选票请求。
 
-### KV服务架构
+
+
+### KV server架构
 
 ![image-20240220044458901](https://raw.githubusercontent.com/hanzug/images/master/images/image-20240220044458901.png)
 
@@ -37,11 +37,24 @@
 
   
 
+### KV server层一般状态
+
+共6个goroutine：
+
+- **applier**: 接受Raft层传来的命令，将其应用到状态机。Raft层已经确保此命令被集群共识。
+
+- Monitor(**configureAction**): 定期拉取配置，如果当前有分片不为Serving状态，则不拉去。只有配置的编号为当前编号 + 1时才应用新配置。
+- Monitor(**migrationAction**): 迁移操作，通过保存lastConfig和currentConfig，当前组向原组发起RPC调用，通过pull的形式来迁移数据。
+- Monitor(**gcAction**): 垃圾回收，数据迁移完成后，Pulling状态转变为GCing，表示被拉取的一方需要被删除。
+- Monitor(**checkEntryInCurrentTermAction**): 如果当前term没有日志，append一个空日志，促使状态机达到最新。
+
 
 
 
 
 ## API：
+
+## 对shardctrler
 
 ### Query()
 
@@ -67,3 +80,22 @@ KV Server调用时机：
 ### Move(shard, gid)
 
 分片迁移只需要更改分片数组的值。迁移动作会在KV server获取到配置后执行。
+
+
+
+## 对 KV server
+
+### Put(key, value)、Get(key)、Append(key)
+
+流程如下：
+
+1. 将数据转换到对应的分片。
+2. 通过配置信息查询分片对应的组id。
+3. RPC调用Command函数。
+4. 如果命令重复且不是Get，直接返回。
+5. （KV server）Command函数与Raft层交互。
+   1. Leader append Entry to Follower。
+   2. 根据follower的回复来增加对应的matchIndex。
+   3. Leader的 applier协程异步向状态机发送被多数节点共识的命令。
+6. KV server 层接受被Raft层共识的命令，将命令应用到状态机。
+
