@@ -134,21 +134,23 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 	DPrintf("{Node %v}'s state is {state %v,term %v,commitIndex %v,lastApplied %v,firstLog %v,lastLog %v} after replacing log with snapshotIndex %v as old snapshotIndex %v is smaller", rf.me, rf.state, rf.currentTerm, rf.commitIndex, rf.lastApplied, rf.getFirstLog(), rf.getLastLog(), index, snapshotIndex)
 }
 
+// RequestVote 处理candidate的拉票请求
 func (rf *Raft) RequestVote(request *RequestVoteRequest, response *RequestVoteResponse) (err error) {
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
-	defer DPrintf("{Node %v}'s state is {state %v,term %v,commitIndex %v,lastApplied %v,firstLog %v,lastLog %v} before processing requestVoteRequest %v and reply requestVoteResponse %v", rf.me, rf.state, rf.currentTerm, rf.commitIndex, rf.lastApplied, rf.getFirstLog(), rf.getLastLog(), request, response)
-
+	// term不合法情况
 	if request.Term < rf.currentTerm || (request.Term == rf.currentTerm && rf.votedFor != -1 && rf.votedFor != request.CandidateId) {
 		response.Term, response.VoteGranted = rf.currentTerm, false
 		return
 	}
+
 	if request.Term > rf.currentTerm {
 		rf.ChangeState(StateFollower)
 		rf.currentTerm, rf.votedFor = request.Term, -1
 	}
+	// 检查日志是否最新
 	if !rf.isLogUpToDate(request.LastLogTerm, request.LastLogIndex) {
 		response.Term, response.VoteGranted = rf.currentTerm, false
 		return
@@ -160,12 +162,12 @@ func (rf *Raft) RequestVote(request *RequestVoteRequest, response *RequestVoteRe
 	return err
 }
 
+// AppendEntries 追加日志
 func (rf *Raft) AppendEntries(request *AppendEntriesRequest, response *AppendEntriesResponse) (err error) {
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	defer rf.persist()
-	defer DPrintf("{Node %v}'s state is {state %v,term %v,commitIndex %v,lastApplied %v,firstLog %v,lastLog %v} before processing AppendEntriesRequest %v and reply AppendEntriesResponse %v", rf.me, rf.state, rf.currentTerm, rf.commitIndex, rf.lastApplied, rf.getFirstLog(), rf.getLastLog(), request, response)
 
 	if request.Term < rf.currentTerm {
 		response.Term, response.Success = rf.currentTerm, false
@@ -219,6 +221,7 @@ func (rf *Raft) AppendEntries(request *AppendEntriesRequest, response *AppendEnt
 	return nil
 }
 
+// InstallSnapshot 应用追加来的日志
 func (rf *Raft) InstallSnapshot(request *InstallSnapshotRequest, response *InstallSnapshotResponse) (err error) {
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	rf.mu.Lock()
@@ -256,6 +259,7 @@ func (rf *Raft) InstallSnapshot(request *InstallSnapshotRequest, response *Insta
 	return err
 }
 
+// sendRequestVote rpc调用
 func (rf *Raft) sendRequestVote(server int, request *RequestVoteRequest, response *RequestVoteResponse) bool {
 
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
@@ -276,6 +280,7 @@ func (rf *Raft) sendRequestVote(server int, request *RequestVoteRequest, respons
 	return true
 }
 
+// sendAppendEntries rpc调用
 func (rf *Raft) sendAppendEntries(server int, request *AppendEntriesRequest, response *AppendEntriesResponse) bool {
 
 	//zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
@@ -300,6 +305,7 @@ func (rf *Raft) sendAppendEntries(server int, request *AppendEntriesRequest, res
 	return true
 }
 
+// sendInstallSnapshot rpc调用
 func (rf *Raft) sendInstallSnapshot(server int, request *InstallSnapshotRequest, response *InstallSnapshotResponse) bool {
 
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
@@ -324,6 +330,7 @@ func (rf *Raft) sendInstallSnapshot(server int, request *InstallSnapshotRequest,
 	return true
 }
 
+// StartElection follower超时变为candidate，开始新一轮的选举
 func (rf *Raft) StartElection() {
 
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
@@ -365,6 +372,7 @@ func (rf *Raft) StartElection() {
 	}
 }
 
+// BroadcastHeartbeat leader进行心跳广播，或者向follower追加新日志
 func (rf *Raft) BroadcastHeartbeat(isHeartBeat bool) {
 
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
@@ -376,16 +384,18 @@ func (rf *Raft) BroadcastHeartbeat(isHeartBeat bool) {
 		if isHeartBeat {
 			zap.S().Infof("leader %d broad heartbeat to follower %d\n", rf.me, peer)
 			//zap.S().Info(zap.Any("state: ", rf.state))
-			// need sending at once to maintain leadership
+			// 此时必须发送消息来维护leader地位
 			go rf.replicateOneRound(peer)
 		} else {
 			// just signal replicator goroutine to send entries in batch
 			zap.S().Infof("leader %d append Entry to follower %d\n", rf.me, peer)
+			// 条件变量，先进行判断
 			rf.replicatorCond[peer].Signal()
 		}
 	}
 }
 
+// replicateOneRound 更新follower的日志，使用appendEntry，或者installSnapshot
 func (rf *Raft) replicateOneRound(peer int) {
 
 	//zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
@@ -677,6 +687,7 @@ func (rf *Raft) ticker() {
 	}
 }
 
+// applier raft层到状态机层的桥梁，wait()阻塞等待，当commitIndex更新时被唤醒，通过channel和状态机层通信
 func (rf *Raft) applier() {
 
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
@@ -717,8 +728,8 @@ func (rf *Raft) replicator(peer int) {
 	rf.replicatorCond[peer].L.Lock()
 	defer rf.replicatorCond[peer].L.Unlock()
 	for rf.killed() == false {
-		// if there is no need to replicate entries for this peer, just release CPU and wait other goroutine's signal if service adds new Command
-		// if this peer needs replicating entries, this goroutine will call replicateOneRound(peer) multiple times until this peer catches up, and then wait
+		// 如果该对等程序不需要复制条目，只需释放 CPU 并等待其他 goroutine 的信号（如果服务添加了新命令）。
+		// 如果该对等程序需要复制条目，该程序将多次调用 replicateOneRound(peer) 直到该对等程序跟上，然后等待
 		for !rf.needReplicating(peer) {
 			rf.replicatorCond[peer].Wait()
 		}
