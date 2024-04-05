@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"6.824/labrpc"
+	"github.com/hanzug/RaftKV/labrpc"
 	"go.uber.org/zap"
 	"net/rpc"
 	"time"

@@ -1,8 +1,8 @@
 package raft
 
 import (
-	"6.824/global"
 	"fmt"
+	"github.com/hanzug/RaftKV/global"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"net"

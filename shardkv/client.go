@@ -1,12 +1,12 @@
 package shardkv
 
 import (
-	"6.824/labrpc"
+	"github.com/hanzug/RaftKV/labrpc"
 	"go.uber.org/zap"
 )
 import "crypto/rand"
 import "math/big"
-import "6.824/shardctrler"
+import "github.com/hanzug/RaftKV/shardctrler"
 import "time"
 
 // key2shard 将键转换为分片

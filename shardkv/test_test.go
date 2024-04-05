@@ -1,7 +1,7 @@
 package shardkv
 
 import (
-	"6.824/raft"
+	"github.com/hanzug/RaftKV/raft"
 	"go.uber.org/zap"
 	"net"
 	"net/rpc"

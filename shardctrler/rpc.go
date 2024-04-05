@@ -1,7 +1,7 @@
 package shardctrler
 
 import (
-	"6.824/global"
+	"github.com/hanzug/RaftKV/global"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"net"

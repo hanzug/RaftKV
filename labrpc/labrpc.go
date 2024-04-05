@@ -50,7 +50,7 @@ package labrpc
 //
 
 import (
-	"6.824/labgob"
+	"github.com/hanzug/RaftKV/labgob"
 	"net/rpc"
 )
 import "bytes"

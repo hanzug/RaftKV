@@ -1,8 +1,8 @@
 package shardkv
 
 import (
-	"6.824/global"
-	"6.824/utils"
+	"github.com/hanzug/RaftKV/global"
+	"github.com/hanzug/RaftKV/utils"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"net"

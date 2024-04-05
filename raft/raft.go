@@ -1,10 +1,10 @@
 package raft
 
 import (
-	"6.824/labgob"
-	"6.824/labrpc"
-	"6.824/utils"
 	"bytes"
+	"github.com/hanzug/RaftKV/labgob"
+	"github.com/hanzug/RaftKV/labrpc"
+	"github.com/hanzug/RaftKV/utils"
 	"go.uber.org/zap"
 	"net"
 	"sync"

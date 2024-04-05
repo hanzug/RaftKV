@@ -1,8 +1,8 @@
 package shardkv
 
 import (
-	"6.824/shardctrler"
 	"fmt"
+	"github.com/hanzug/RaftKV/shardctrler"
 	"log"
 	"time"
 )

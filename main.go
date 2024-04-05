@@ -1,14 +1,14 @@
 package main
 
 import (
-	"6.824/global"
-	"6.824/labrpc"
-	"6.824/raft"
-	"6.824/shardctrler"
-	"6.824/shardkv"
-	"6.824/utils"
 	"flag"
 	"fmt"
+	"github.com/hanzug/RaftKV/global"
+	"github.com/hanzug/RaftKV/labrpc"
+	"github.com/hanzug/RaftKV/raft"
+	"github.com/hanzug/RaftKV/shardctrler"
+	"github.com/hanzug/RaftKV/shardkv"
+	"github.com/hanzug/RaftKV/utils"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"time"
