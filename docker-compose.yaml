@@ -1,0 +1,37 @@
+version: '3'
+services:
+  shardkv1:
+    image: raftkv
+    command: ["./main", "-role", "shardkv", "-me", "1"]
+    volumes:
+      - ./config:/app/config
+  shardkv2:
+    image: raftkv
+    command: ["./main", "-role", "shardkv", "-me", "2"]
+    volumes:
+      - ./config:/app/config
+  shardkv3:
+    image: raftkv
+    command: ["./main", "-role", "shardkv", "-me", "3"]
+    volumes:
+      - ./config:/app/config
+  shardctrler1:
+    image: raftkv
+    command: ["./main", "-role", "shardctrler", "-me", "1"]
+    volumes:
+      - ./config:/app/config
+  shardctrler2:
+    image: raftkv
+    command: ["./main", "-role", "shardctrler", "-me", "2"]
+    volumes:
+      - ./config:/app/config
+  shardctrler3:
+    image: raftkv
+    command: ["./main", "-role", "shardctrler", "-me", "3"]
+    volumes:
+      - ./config:/app/config
+  client:
+    image: raftkv
+    command: ["./main", "-role", "client", "-me", "100"]
+    volumes:
+      - ./config:/app/config
