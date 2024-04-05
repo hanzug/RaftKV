@@ -90,7 +90,7 @@ func main() {
 
 	if *role == "shardkv" {
 		//启动shardkv server
-		shardkv.StartServer(shardkvServers, global.Me, &raft.Persister{}, 100000, 0, shardctrlerServers, utils.MakeEnd)
+		shardkv.StartServer(shardkvServers, global.Me, &raft.Persister{}, 1000, 0, shardctrlerServers, utils.MakeEnd)
 		for true {
 			time.Sleep(time.Second)
 		}
