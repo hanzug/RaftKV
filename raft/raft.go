@@ -39,8 +39,6 @@ type Raft struct {
 	Lis net.Listener
 }
 
-// return currentTerm and whether this server
-// believes it is the leader.
 func (rf *Raft) GetState() (int, bool) {
 	rf.mu.RLock()
 	defer rf.mu.RUnlock()
@@ -53,9 +51,8 @@ func (rf *Raft) GetRaftStateSize() int {
 	return rf.persister.RaftStateSize()
 }
 
-// save Raft's persistent state to stable storage,
-// where it can later be retrieved after a crash and restart.
-// see paper's Figure 2 for a description of what should be persistent.
+// 将 Raft 的持久化状态保存到稳定存储器中、
+// 在崩溃和重启后可以检索到。
 func (rf *Raft) persist() {
 	rf.persister.SaveRaftState(rf.encodeState())
 }
@@ -89,8 +86,8 @@ func (rf *Raft) encodeState() []byte {
 	return w.Bytes()
 }
 
-// A service wants to switch to snapshot.  Only do so if Raft hasn't
-// have more recent info since it communicate the snapshot on applyCh.
+// 服务希望切换到快照。 只有当 Raft
+// 有更多最新信息，因为它在 applyCh 上传达了快照。
 func (rf *Raft) CondInstallSnapshot(lastIncludedTerm int, lastIncludedIndex int, snapshot []byte) bool {
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	rf.mu.Lock()
@@ -118,10 +115,10 @@ func (rf *Raft) CondInstallSnapshot(lastIncludedTerm int, lastIncludedIndex int,
 	return true
 }
 
-// the service says it has created a snapshot that has
-// all info up to and including index. this means the
-// service no longer needs the log through (and including)
-// that index. Raft should now trim its log as much as possible.
+// Snapshot
+// 服务说它已创建了一个快照，其中包含
+// 包括索引在内的所有信息。
+// 服务不再需要直到（并包括）该索引的日志。
 func (rf *Raft) Snapshot(index int, snapshot []byte) {
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	rf.mu.Lock()
@@ -259,33 +256,6 @@ func (rf *Raft) InstallSnapshot(request *InstallSnapshotRequest, response *Insta
 	return err
 }
 
-// example code to send a RPC to a server.
-// server is the index of the target server in rf.peers[].
-// expects RPC arguments in args.
-// fills in *reply with RPC reply, so caller should
-// pass &reply.
-// the types of the args and reply passed to Call() must be
-// the same as the types of the arguments declared in the
-// handler function (including whether they are pointers).
-//
-// The labrpc package simulates a lossy network, in which servers
-// may be unreachable, and in which requests and replies may be lost.
-// Call() sends a request and waits for a reply. If a reply arrives
-// within a timeout interval, Call() returns true; otherwise
-// Call() returns false. Thus Call() may not return for a while.
-// A false return can be caused by a dead server, a live server that
-// can't be reached, a lost request, or a lost reply.
-//
-// Call() is guaranteed to return (perhaps after a delay) *except* if the
-// handler function on the server side does not return.  Thus there
-// is no need to implement your own timeouts around Call().
-//
-// look at the comments in ../labrpc/labrpc.go for more details.
-//
-// if you're having trouble getting RPC to work, check that you've
-// capitalized all field names in structs passed over RPC, and
-// that the caller passes the address of the reply struct with &, not
-// the struct itself.
 func (rf *Raft) sendRequestVote(server int, request *RequestVoteRequest, response *RequestVoteResponse) bool {
 
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
@@ -566,7 +536,6 @@ func (rf *Raft) ChangeState(state NodeState) {
 	}
 }
 
-// used to compute and advance commitIndex by matchIndex[]
 func (rf *Raft) advanceCommitIndexForLeader() {
 
 	//zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
@@ -589,7 +558,6 @@ func (rf *Raft) advanceCommitIndexForLeader() {
 	}
 }
 
-// used to advance commitIndex by leaderCommit
 func (rf *Raft) advanceCommitIndexForFollower(leaderCommit int) {
 
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
@@ -645,18 +613,18 @@ func (rf *Raft) HasLogInCurrentTerm() bool {
 	return rf.getLastLog().Term == rf.currentTerm
 }
 
-// the service using Raft (e.g. a k/v server) wants to start
-// agreement on the next command to be appended to Raft's log. if this
-// server isn't the leader, returns false. otherwise start the
-// agreement and return immediately. there is no guarantee that this
-// command will ever be committed to the Raft log, since the leader
-// may fail or lose an election. even if the Raft instance has been killed,
-// this function should return gracefully.
+// Start
+// 使用 Raft 服务的入口
+// 如果该服务器不是领导者，则返回 false。
+// 服务器不是领导者，则返回 false。
+// 否则启动协议并立即返回。
+// 命令会被提交到 Raft 日志中，因为领导者
+// 即使 Raft 实例已被杀死、
+// 该函数应该优雅地返回。
 //
-// the first return value is the index that the command will appear at
-// if it's ever committed. the second return value is the current
-// term. the third return value is true if this server believes it is
-// the leader.
+// 第一个返回值是该命令在提交时将出现的索引。
+// 第二个返回值是当前的任期。
+// 第三个返回值是 true，如果该服务器认为自己是leader
 func (rf *Raft) Start(command interface{}) (int, int, bool) {
 
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
@@ -672,15 +640,6 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	return newLog.Index, newLog.Term, true
 }
 
-// the tester doesn't halt goroutines created by Raft after each test,
-// but it does call the Kill() method. your code can use killed() to
-// check whether Kill() has been called. the use of atomic avoids the
-// need for a lock.
-//
-// the issue is that long-running goroutines use memory and may chew
-// up CPU time, perhaps causing later tests to fail and generating
-// confusing debug output. any goroutine with a long-running loop
-// should call killed() to check whether it should stop.
 func (rf *Raft) Kill() {
 	atomic.StoreInt32(&rf.dead, 1)
 }
