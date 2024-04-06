@@ -2,6 +2,7 @@ package shardkv
 
 import (
 	"github.com/hanzug/RaftKV/labrpc"
+	"github.com/hanzug/RaftKV/utils"
 	"go.uber.org/zap"
 )
 import "crypto/rand"
@@ -12,7 +13,7 @@ import "time"
 // key2shard 将键转换为分片
 // 首字符对分片数取模
 func key2shard(key string) int {
-
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	shard := 0
 	if len(key) > 0 {
 		shard = int(key[0])
@@ -41,8 +42,7 @@ type Clerk struct {
 
 // MakeClerk 创建一个新的 Clerk
 func MakeClerk(ctrlers []*labrpc.ClientEnd, makeEnd func(string) *labrpc.ClientEnd) *Clerk {
-
-	zap.S().Info("MakeClerk")
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	ck := &Clerk{
 		Sm:        shardctrler.MakeClerk(ctrlers),
 		makeEnd:   makeEnd,
@@ -55,22 +55,23 @@ func MakeClerk(ctrlers []*labrpc.ClientEnd, makeEnd func(string) *labrpc.ClientE
 }
 
 func (ck *Clerk) Get(key string) string {
-	zap.S().Warn(zap.Any("func", "Get(key string) string"))
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	return ck.Command(&CommandRequest{Key: key, Op: OpGet})
 }
 
 func (ck *Clerk) Put(key string, value string) {
-	zap.S().Warn(zap.Any("func", "Get(key string) string"))
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	ck.Command(&CommandRequest{Key: key, Value: value, Op: OpPut})
 }
 func (ck *Clerk) Append(key string, value string) {
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	ck.Command(&CommandRequest{Key: key, Value: value, Op: OpAppend})
 }
 
 // Command 执行一个命令
 func (ck *Clerk) Command(request *CommandRequest) string {
 
-	zap.S().Warn(zap.Any("func", "Command(request *CommandRequest) string"))
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 
 	request.ClientId, request.CommandId = ck.clientId, ck.commandId
 	for {

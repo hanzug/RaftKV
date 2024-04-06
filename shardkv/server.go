@@ -102,7 +102,7 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister,
 	// 定期检查当前任期（term）中的日志条目，并通过在当前任期中定期添加空的日志条目来推进提交索引（commitIndex），以避免活锁（live lock）的发生。
 	go kv.Monitor(kv.checkEntryInCurrentTermAction, EmptyEntryDetectorTimeout)
 
-	DPrintf("{Node %v}{Group %v} has started", kv.Rf.Me(), kv.gid)
+	zap.S().Info("{Node %v}{Group %v} has started", kv.Rf.Me(), kv.gid)
 
 	return kv
 }
@@ -200,7 +200,6 @@ func (kv *ShardKV) applyOperation(message *raft.ApplyMsg, operation *CommandRequ
 			return response
 		}
 	}
-	zap.S().Warn("---------can not server", zap.Any("", kv.currentConfig))
 	return &CommandResponse{ErrWrongGroup, ""}
 }
 
@@ -467,13 +466,16 @@ func (kv *ShardKV) updateShardStatus(nextConfig *shardctrler.Config) {
 
 // ------------------------------ Snapshot part begin ------------------------------
 
+// needSnapshot 判断raft日志的大小是否达到限制
 func (kv *ShardKV) needSnapshot() bool {
 	return kv.maxRaftState != -1 && kv.Rf.GetRaftStateSize() >= kv.maxRaftState
 }
 
+// takeSnapshot 快照，保存状态机数据以及raft数据
 func (kv *ShardKV) takeSnapshot(index int) {
 
 	zap.S().Info(utils.GetCurrentFunctionName())
+
 	w := new(bytes.Buffer)
 	e := labgob.NewEncoder(w)
 	e.Encode(kv.stateMachines)

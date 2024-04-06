@@ -21,7 +21,7 @@ func loggerInit() {
 
 	// 创建配置对象
 	config := zap.Config{
-		Level:            zap.NewAtomicLevelAt(zap.DebugLevel), // 设置日志级别
+		Level:            zap.NewAtomicLevelAt(zap.WarnLevel), // 设置日志级别
 		Development:      false,
 		Encoding:         "console",                                      // 输出格式，可以是 "json" 或 "console"
 		EncoderConfig:    zap.NewProductionEncoderConfig(),               // 编码器配置
@@ -55,7 +55,6 @@ func main() {
 	}
 
 	// 获取配置信息
-	//role := viper.GetString("role")
 	role := flag.String("role", "shardkv", "run mode")
 	//me := viper.GetInt("me")
 	me := flag.Int("me", 100, "node id")
@@ -65,8 +64,6 @@ func main() {
 	global.Me = *me
 
 	shardkvRpc := viper.GetStringSlice("shardkv")
-
-	//raftRpc := viper.GetStringSlice("shardkv")
 
 	shardctrlerRpc := viper.GetStringSlice("shardctrler")
 
@@ -130,6 +127,14 @@ func main() {
 
 				ck.Put(key, value)
 
+			} else if op == "append" {
+				var key string
+				fmt.Println("key:")
+				fmt.Scanln(&key)
+				var value string
+				fmt.Println("value:")
+				fmt.Scanln(&value)
+				ck.Append(key, value)
 			}
 		}
 

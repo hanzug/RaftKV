@@ -86,35 +86,6 @@ func (rf *Raft) encodeState() []byte {
 	return w.Bytes()
 }
 
-// 服务希望切换到快照。 只有当 Raft
-// 有更多最新信息，因为它在 applyCh 上传达了快照。
-func (rf *Raft) CondInstallSnapshot(lastIncludedTerm int, lastIncludedIndex int, snapshot []byte) bool {
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
-	rf.mu.Lock()
-	defer rf.mu.Unlock()
-	DPrintf("{Node %v} service calls CondInstallSnapshot with lastIncludedTerm %v and lastIncludedIndex %v to check whether snapshot is still valid in term %v", rf.me, lastIncludedTerm, lastIncludedIndex, rf.currentTerm)
-
-	// outdated snapshot
-	if lastIncludedIndex <= rf.commitIndex {
-		DPrintf("{Node %v} rejects the snapshot which lastIncludedIndex is %v because commitIndex %v is larger", rf.me, lastIncludedIndex, rf.commitIndex)
-		return false
-	}
-
-	if lastIncludedIndex > rf.getLastLog().Index {
-		rf.logs = make([]Entry, 1)
-	} else {
-		rf.logs = shrinkEntriesArray(rf.logs[lastIncludedIndex-rf.getFirstLog().Index:])
-		rf.logs[0].Command = nil
-	}
-	// update dummy entry with lastIncludedTerm and lastIncludedIndex
-	rf.logs[0].Term, rf.logs[0].Index = lastIncludedTerm, lastIncludedIndex
-	rf.lastApplied, rf.commitIndex = lastIncludedIndex, lastIncludedIndex
-
-	rf.persister.SaveStateAndSnapshot(rf.encodeState(), snapshot)
-	DPrintf("{Node %v}'s state is {state %v,term %v,commitIndex %v,lastApplied %v,firstLog %v,lastLog %v} after accepting the snapshot which lastIncludedTerm is %v, lastIncludedIndex is %v", rf.me, rf.state, rf.currentTerm, rf.commitIndex, rf.lastApplied, rf.getFirstLog(), rf.getLastLog(), lastIncludedTerm, lastIncludedIndex)
-	return true
-}
-
 // Snapshot
 // 服务说它已创建了一个快照，其中包含
 // 包括索引在内的所有信息。
@@ -125,13 +96,11 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 	defer rf.mu.Unlock()
 	snapshotIndex := rf.getFirstLog().Index
 	if index <= snapshotIndex {
-		DPrintf("{Node %v} rejects replacing log with snapshotIndex %v as current snapshotIndex %v is larger in term %v", rf.me, index, snapshotIndex, rf.currentTerm)
 		return
 	}
 	rf.logs = shrinkEntriesArray(rf.logs[index-snapshotIndex:])
 	rf.logs[0].Command = nil
 	rf.persister.SaveStateAndSnapshot(rf.encodeState(), snapshot)
-	DPrintf("{Node %v}'s state is {state %v,term %v,commitIndex %v,lastApplied %v,firstLog %v,lastLog %v} after replacing log with snapshotIndex %v as old snapshotIndex %v is smaller", rf.me, rf.state, rf.currentTerm, rf.commitIndex, rf.lastApplied, rf.getFirstLog(), rf.getLastLog(), index, snapshotIndex)
 }
 
 // RequestVote 处理candidate的拉票请求
@@ -221,7 +190,7 @@ func (rf *Raft) AppendEntries(request *AppendEntriesRequest, response *AppendEnt
 	return nil
 }
 
-// InstallSnapshot 应用追加来的日志
+// InstallSnapshot 是一个RPC调用的处理函数，它的主要作用是处理来自领导者的InstallSnapshot请求
 func (rf *Raft) InstallSnapshot(request *InstallSnapshotRequest, response *InstallSnapshotResponse) (err error) {
 	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 	rf.mu.Lock()
@@ -257,6 +226,31 @@ func (rf *Raft) InstallSnapshot(request *InstallSnapshotRequest, response *Insta
 	}()
 
 	return err
+}
+
+// CondInstallSnapshot 则是在接收到新的快照数据时，更新Raft节点的状态。
+func (rf *Raft) CondInstallSnapshot(lastIncludedTerm int, lastIncludedIndex int, snapshot []byte) bool {
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	rf.mu.Lock()
+	defer rf.mu.Unlock()
+
+	// outdated snapshot
+	if lastIncludedIndex <= rf.commitIndex {
+		return false
+	}
+
+	if lastIncludedIndex > rf.getLastLog().Index {
+		rf.logs = make([]Entry, 1)
+	} else {
+		rf.logs = shrinkEntriesArray(rf.logs[lastIncludedIndex-rf.getFirstLog().Index:])
+		rf.logs[0].Command = nil
+	}
+	// update dummy entry with lastIncludedTerm and lastIncludedIndex
+	rf.logs[0].Term, rf.logs[0].Index = lastIncludedTerm, lastIncludedIndex
+	rf.lastApplied, rf.commitIndex = lastIncludedIndex, lastIncludedIndex
+
+	rf.persister.SaveStateAndSnapshot(rf.encodeState(), snapshot)
+	return true
 }
 
 // sendRequestVote rpc调用
@@ -398,7 +392,7 @@ func (rf *Raft) BroadcastHeartbeat(isHeartBeat bool) {
 // replicateOneRound 更新follower的日志，使用appendEntry，或者installSnapshot
 func (rf *Raft) replicateOneRound(peer int) {
 
-	//zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 
 	rf.mu.RLock()
 	if rf.state != StateLeader {

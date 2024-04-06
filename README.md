@@ -97,6 +97,28 @@ KV Server调用时机：
 
 
 
+## 活动图
+
+### 选举
+
+![image-20240406174752814](https://raw.githubusercontent.com/hanzug/images/master/images/image-20240406174752814.png)
+
+### 写日志
+
+<img src="https://raw.githubusercontent.com/hanzug/images/master/images/image-20240406175941516.png" alt="image-20240406175941516" style="zoom:50%;" />
+
+
+
+<img src="https://raw.githubusercontent.com/hanzug/images/master/images/image-20240406180000119.png" alt="image-20240406180000119" style="zoom: 67%;" />
+
+### 日志追赶
+
+![image-20240406180204870](https://raw.githubusercontent.com/hanzug/images/master/images/image-20240406180204870.png)
+
+### 快照
+
+快照保存了raft的状态（包括
+
 ## 启动
 
 1. 启动服务：docker compose up，启动一个shardkv集群（三个节点），和一个配置中心集群（三个节点）
