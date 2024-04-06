@@ -1,37 +1,96 @@
 version: '3'
 services:
-  shardkv1:
-    image: raftkv
-    command: ["./main", "-role", "shardkv", "-me", "1"]
-    volumes:
-      - ./config:/app/config
-  shardkv2:
-    image: raftkv
-    command: ["./main", "-role", "shardkv", "-me", "2"]
-    volumes:
-      - ./config:/app/config
-  shardkv3:
-    image: raftkv
-    command: ["./main", "-role", "shardkv", "-me", "3"]
-    volumes:
-      - ./config:/app/config
   shardctrler1:
     image: raftkv
-    command: ["./main", "-role", "shardctrler", "-me", "1"]
+    container_name: shardctrler1
+    ports:
+      - "9331:9331"
+    command: ["./main", "-role=shardctrler", "-me=0"]
     volumes:
       - ./config:/app/config
+    networks:
+      - app-network
+
   shardctrler2:
     image: raftkv
-    command: ["./main", "-role", "shardctrler", "-me", "2"]
+    container_name: shardctrler2
+    ports:
+      - "9332:9332"
+    command: ["./main", "-role=shardctrler", "-me=1"]
     volumes:
       - ./config:/app/config
+    networks:
+      - app-network
+
   shardctrler3:
     image: raftkv
-    command: ["./main", "-role", "shardctrler", "-me", "3"]
+    container_name: shardctrler3
+    ports:
+      - "9333:9333"
+    command: ["./main", "-role=shardctrler", "-me=2"]
     volumes:
       - ./config:/app/config
-  client:
+    networks:
+      - app-network
+
+  shardkv1:
     image: raftkv
-    command: ["./main", "-role", "client", "-me", "100"]
+    container_name: shardkv1
+    ports:
+      - "9111:9111"
+    command: ["./main", "-role=shardkv", "-me=0"]
     volumes:
       - ./config:/app/config
+    depends_on:
+      - shardctrler1
+      - shardctrler2
+      - shardctrler3
+    networks:
+      - app-network
+
+  shardkv2:
+    image: raftkv
+    container_name: shardkv2
+    ports:
+      - "9112:9112"
+    command: ["./main", "-role=shardkv", "-me=1"]
+    volumes:
+      - ./config:/app/config
+    depends_on:
+      - shardctrler1
+      - shardctrler2
+      - shardctrler3
+    networks:
+      - app-network
+
+  shardkv3:
+    image: raftkv
+    container_name: shardkv3
+    ports:
+      - "9113:9113"
+    command: ["./main", "-role=shardkv", "-me=2"]
+    volumes:
+      - ./config:/app/config
+    depends_on:
+      - shardctrler1
+      - shardctrler2
+      - shardctrler3
+    networks:
+      - app-network
+
+#  client:
+#    image: raftkv
+#    container_name: client
+#    command: ["./main", "-role", "client", "-me", "100"]
+#    volumes:
+#      - ./config:/app/config
+#    depends_on:
+#      - shardkv1
+#      - shardkv2
+#      - shardkv3
+#    networks:
+#      - app-network
+
+networks:
+  app-network:
+    driver: bridge

@@ -283,7 +283,7 @@ func (rf *Raft) sendRequestVote(server int, request *RequestVoteRequest, respons
 // sendAppendEntries rpc调用
 func (rf *Raft) sendAppendEntries(server int, request *AppendEntriesRequest, response *AppendEntriesResponse) bool {
 
-	//zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
 
 	if rf.peers[server].Rpc == nil {
 		tmp := utils.MakeEnd(rf.peers[server].Endname)

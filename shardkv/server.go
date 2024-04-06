@@ -207,6 +207,7 @@ func (kv *ShardKV) applyOperation(message *raft.ApplyMsg, operation *CommandRequ
 // 2.配置操作：更新分片状态
 func (kv *ShardKV) applyConfiguration(nextConfig *shardctrler.Config) *CommandResponse {
 	// 如果配置有更新
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	if nextConfig.Num == kv.currentConfig.Num+1 {
 		DPrintf("{Node %v}{Group %v} updates currentConfig from %v to %v", kv.Rf.Me(), kv.gid, kv.currentConfig, nextConfig)
 		kv.updateShardStatus(nextConfig)
@@ -220,6 +221,7 @@ func (kv *ShardKV) applyConfiguration(nextConfig *shardctrler.Config) *CommandRe
 
 // 3.1插入分片
 func (kv *ShardKV) applyInsertShards(shardsInfo *ShardOperationResponse) *CommandResponse {
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	if shardsInfo.ConfigNum == kv.currentConfig.Num {
 		DPrintf("{Node %v}{Group %v} accepts shards insertion %v when currentConfig is %v", kv.Rf.Me(), kv.gid, shardsInfo, kv.currentConfig)
 		for shardId, shardData := range shardsInfo.Shards {
@@ -247,6 +249,7 @@ func (kv *ShardKV) applyInsertShards(shardsInfo *ShardOperationResponse) *Comman
 
 // 3.2删除分片
 func (kv *ShardKV) applyDeleteShards(shardsInfo *ShardOperationRequest) *CommandResponse {
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	if shardsInfo.ConfigNum == kv.currentConfig.Num {
 		DPrintf("{Node %v}{Group %v}'s shards status are %v before accepting shards deletion %v when currentConfig is %v", kv.Rf.Me(), kv.gid, kv.getShardStatus(), shardsInfo, kv.currentConfig)
 		for _, shardId := range shardsInfo.ShardIDs {
@@ -269,6 +272,7 @@ func (kv *ShardKV) applyDeleteShards(shardsInfo *ShardOperationRequest) *Command
 
 // 4.空日志：促进状态机达到最新
 func (kv *ShardKV) applyEmptyEntry() *CommandResponse {
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	return &CommandResponse{OK, ""}
 }
 
@@ -416,6 +420,7 @@ func (kv *ShardKV) DeleteShardsData(request *ShardOperationRequest, response *Sh
 }
 
 func (kv *ShardKV) getShardStatus() []ShardStatus {
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	results := make([]ShardStatus, shardctrler.NShards)
 	for i := 0; i < shardctrler.NShards; i++ {
 		results[i] = kv.stateMachines[i].Status
@@ -424,6 +429,7 @@ func (kv *ShardKV) getShardStatus() []ShardStatus {
 }
 
 func (kv *ShardKV) getShardIDsByStatus(status ShardStatus) map[int][]int {
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	gid2shardIDs := make(map[int][]int)
 	for i, shard := range kv.stateMachines {
 		if shard.Status == status {
@@ -440,6 +446,7 @@ func (kv *ShardKV) getShardIDsByStatus(status ShardStatus) map[int][]int {
 }
 
 func (kv *ShardKV) updateShardStatus(nextConfig *shardctrler.Config) {
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	for i := 0; i < shardctrler.NShards; i++ {
 		if kv.currentConfig.Shards[i] != kv.gid && nextConfig.Shards[i] == kv.gid {
 			gid := kv.currentConfig.Shards[i]
@@ -515,6 +522,7 @@ func (kv *ShardKV) Monitor(action func(), timeout time.Duration) {
 }
 
 func (kv *ShardKV) configureAction() {
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	canPerformNextConfig := true
 	kv.mu.RLock()
 	for _, shard := range kv.stateMachines {
@@ -536,6 +544,7 @@ func (kv *ShardKV) configureAction() {
 }
 
 func (kv *ShardKV) migrationAction() {
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	kv.mu.RLock()
 	gid2shardIDs := kv.getShardIDsByStatus(Pulling)
 	var wg sync.WaitGroup
@@ -561,6 +570,9 @@ func (kv *ShardKV) migrationAction() {
 }
 
 func (kv *ShardKV) gcAction() {
+
+	zap.S().Warn(utils.GetCurrentFunctionName())
+
 	kv.mu.RLock()
 	gid2shardIDs := kv.getShardIDsByStatus(GCing)
 	var wg sync.WaitGroup

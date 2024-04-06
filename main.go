@@ -21,7 +21,7 @@ func loggerInit() {
 
 	// 创建配置对象
 	config := zap.Config{
-		Level:            zap.NewAtomicLevelAt(zap.WarnLevel), // 设置日志级别
+		Level:            zap.NewAtomicLevelAt(zap.DebugLevel), // 设置日志级别
 		Development:      false,
 		Encoding:         "console",                                      // 输出格式，可以是 "json" 或 "console"
 		EncoderConfig:    zap.NewProductionEncoderConfig(),               // 编码器配置
@@ -107,7 +107,7 @@ func main() {
 		//启动client
 		ck := shardkv.MakeClerk(shardctrlerServers, utils.MakeEnd)
 
-		ck.Sm.Join(map[int][]string{0: []string{"localhost:9111", "localhost:9112", "localhost:9113"}})
+		ck.Sm.Join(map[int][]string{0: []string{"shardkv1:9111", "shardkv2:9112", "shardkv3:9113"}})
 
 		for true {
 			fmt.Println("Enter op: ")

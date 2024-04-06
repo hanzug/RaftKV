@@ -2,5 +2,5 @@
 
 role: "shardctrler"
 
-shardkv: ["localhost:9111", "localhost:9112", "localhost:9113"]
-shardctrler: ["localhost:9331", "localhost:9332", "localhost:9333"]
+shardkv: [ "shardkv1:9111", "shardkv2:9112", "shardkv3:9113"]
+shardctrler: [ "shardctrler1:9331", "shardctrler2:9332", "shardctrler3:9333"]
