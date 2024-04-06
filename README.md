@@ -94,3 +94,11 @@ KV Server调用时机：
    2. 根据follower的回复来增加对应的matchIndex。
    3. Leader的 applier协程异步向状态机发送被多数节点共识的命令。
 6. KV server 层接受被Raft层共识的命令，将命令应用到状态机。
+
+
+
+## 启动
+
+1. 启动服务：docker compose up，启动一个shardkv集群（三个节点），和一个配置中心集群（三个节点）
+
+2. 启动客户端：./main -role=client -me=0
