@@ -1,4 +1,4 @@
-## 项目介绍
+## 1.项目介绍
 
 此项目是基于Raft分布式共识协议的分片KV服务。在Raft的基础上构建了**配置中心集群**，以及**KV服务集群**。它支持对数据的Get, Put, Append操作，以及对分片配置的Join, Leave, Move, Query操作。
 
@@ -9,13 +9,33 @@
 
 
 
-## 总体架构
+## 2.总体架构
 
 ![image-20240219161358187](https://raw.githubusercontent.com/hanzug/images/master/images/image-20240219161358187.png)
 
 
 
-## KV server
+**shard**：部分键值的集合。键值通过hash函数映射到具体的分片，分片可以在group之间迁移，分片到group的映射由ShardCtrler提供。
+
+**Raft**：分布式共识算法。为集群提供强一致性日志。
+
+**Server**：对kv服务的实现。接受client的命令，通过Raft算法层共识后，对状态机进行具体的数据操作。 
+
+**Group**：代表一个kv服务集群（raft集群）。 是存储分片的单位。
+
+**ShardCtrler**：配置中心。存储了 < shard，group> 和 <group, 各节点的地址>。
+
+
+
+
+
+## 3.KV server
+
+
+
+### 3.1 **提供kv服务的框架**
+
+
 
 ![image-20240220044458901](https://raw.githubusercontent.com/hanzug/images/master/images/image-20240220044458901.png)
 
@@ -33,7 +53,7 @@
 
 
 
-### KV server层一般状态
+### 3.2 KV server层一般状态
 
 共6个goroutine：
 
@@ -46,15 +66,15 @@
 
 
 
-### client命令的处理流程：
+### 3.2 client命令的处理流程：
 
 <img src="https://raw.githubusercontent.com/hanzug/images/master/images/image-20240408132134453.png" alt="image-20240408132134453" style="zoom:67%;" />
 
-### 关于线性化语义
+### 3.3关于线性化语义
 
 
 
-#### 什么是线性化语义？
+#### 3.3.1什么是线性化语义？
 
 
 线性化语义是一种**强一致性模型**，用于描述并发系统中的操作执行顺序。在分布式系统中，线性化语义确保系统表现得就像操作是在一个全局的、原子的、瞬时完成的时间点发生一样。简而言之，线性化语义提供了对系统行为的一种全局排序，使得每个操作看起来就像它在某个瞬时发生的时间点一样。
@@ -68,7 +88,7 @@
 
 
 
-#### 如何实现线性化语义？
+#### 3.3.2如何实现线性化语义？
 
 Raft旨在实现线性化语义，以解决分布式系统中重复命令的问题，并为客户端提供更强的保证。线性化确保每个操作在其调用和响应之间都表现为瞬间完成，且仅执行一次。为了在Raft中实现这一目标：
 
@@ -91,7 +111,7 @@ Raft旨在实现线性化语义，以解决分布式系统中重复命令的问�
 
 
 
-## ShardCtrler
+## 4.ShardCtrler
 
 
 
@@ -101,14 +121,14 @@ Raft旨在实现线性化语义，以解决分布式系统中重复命令的问�
 
 
 
-### 讨论
+### 4.1讨论
 
 有关 shardctrler，其实它就是一个高可用的**集群配置管理服务**。
 
 它主要记录了
 
-1. 当前每个 raft 组对应的副本数个节点的 endpoint 。
-2. 当前每个 shard 被分配到了哪个 raft 组这两个 map。
+1. **当前每个 raft 组对应的副本数个节点的 endpoint 。**
+2. **当前每个 shard 被分配到了哪个 raft 组这两个 map。**
 
 
 
@@ -120,7 +140,7 @@ shardctrler 的角色就类似于Kafka 的 ZK，只不过工业界的集群配�
 
 
 
-## Raft
+## 5.Raft
 
 共 3 + n 个goroutine
 
