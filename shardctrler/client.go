@@ -1,9 +1,5 @@
 package shardctrler
 
-//
-// Shardctrler clerk.
-//
-
 import (
 	"github.com/hanzug/RaftKV/labrpc"
 	"github.com/hanzug/RaftKV/utils"
@@ -27,7 +23,7 @@ func nrand() int64 {
 
 func MakeClerk(servers []*labrpc.ClientEnd) *Clerk {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	clerk := &Clerk{
 		servers:   servers,
@@ -35,13 +31,12 @@ func MakeClerk(servers []*labrpc.ClientEnd) *Clerk {
 		clientId:  0,
 		commandId: 0,
 	}
-	//zap.L().Info("", zap.Any("servers", servers))
 	return clerk
 }
 
 func (ck *Clerk) Query(num int) Config {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	//ShardCtrler.Command
 	return ck.Command(&CommandRequest{Num: num, Op: OpQuery})
@@ -49,34 +44,28 @@ func (ck *Clerk) Query(num int) Config {
 
 func (ck *Clerk) Join(servers map[int][]string) {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	ck.Command(&CommandRequest{Servers: servers, Op: OpJoin})
 }
 
 func (ck *Clerk) Leave(gids []int) {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	ck.Command(&CommandRequest{GIDs: gids, Op: OpLeave})
 }
 
 func (ck *Clerk) Move(shard int, gid int) {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	ck.Command(&CommandRequest{Shard: shard, GID: gid, Op: OpMove})
 }
 
-// you can send an RPC with code like this:
-// ok := ck.servers[i].Call("ShardCtrler.Command", &request, &response)
-//
-// the types of args and reply (including whether they are pointers)
-// must match the declared types of the RPC handler function's
-// arguments. and reply must be passed as a pointer.
 func (ck *Clerk) Command(request *CommandRequest) Config {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	request.ClientId, request.CommandId = ck.clientId, ck.commandId
 	for {
@@ -90,19 +79,15 @@ func (ck *Clerk) Command(request *CommandRequest) Config {
 
 			ck.servers[ck.leaderId].Rpc = tmp.Rpc
 		}
-		//zap.S().Info(zap.Any("leaderId", ck.leaderId))
-		//zap.S().Info(zap.Any("leaderId", ck.servers[ck.leaderId]))
 
 		err := ck.servers[ck.leaderId].Rpc.Call("ShardCtrler.Command", request, &response)
 		if err != nil {
 			zap.S().Error(zap.Error(err))
 		}
-		//zap.S().Error(response.Err)
 
 		if response.Err == ErrWrongLeader || response.Err == ErrTimeout {
-			zap.S().Info("--------------", zap.Int("err leader = ", int(ck.leaderId)), zap.Any("response", response.Err))
+			zap.S().Warn(zap.Int("err leader = ", int(ck.leaderId)), zap.Any("response", response.Err))
 			ck.leaderId = (ck.leaderId + 1) % int64(len(ck.servers))
-			//time.Sleep(time.Second * 5)
 			continue
 		}
 		ck.commandId++

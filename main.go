@@ -23,10 +23,10 @@ func loggerInit() {
 	config := zap.Config{
 		Level:            zap.NewAtomicLevelAt(zap.WarnLevel), // 设置日志级别
 		Development:      false,
-		Encoding:         "console",                                      // 输出格式，可以是 "json" 或 "console"
-		EncoderConfig:    zap.NewProductionEncoderConfig(),               // 编码器配置
-		InitialFields:    map[string]interface{}{"serviceName": "myapp"}, // 初始化字段，添加到所有日志
-		OutputPaths:      outputPaths,                                    // 日志输出路径
+		Encoding:         "console",                        // 输出格式，可以是 "json" 或 "console"
+		EncoderConfig:    zap.NewProductionEncoderConfig(), // 编码器配置
+		InitialFields:    map[string]interface{}{},         // 初始化字段，添加到所有日志
+		OutputPaths:      outputPaths,                      // 日志输出路径
 		ErrorOutputPaths: outputPaths,
 		DisableCaller:    false, // 错误日志输出路径
 	}

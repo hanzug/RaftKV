@@ -26,16 +26,14 @@ type ShardCtrler struct {
 	Lis net.Listener
 }
 
-// servers[] contains the ports of the set of
-// servers that will cooperate via Paxos to
-// form the fault-tolerant shardctrler service.
-// me is the index of the current server in servers[].
+// servers[] 包含将通过 raft 进行合作的
+// 服务器的端口。
+// 形成容错分片机服务。
+// me 是 servers[] 中当前服务器的索引。
 func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister) *ShardCtrler {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
-	// call labgob.Register on structures you want
-	// Go's RPC library to marshall/unmarshall.
 	labgob.Register(Command{})
 	applyCh := make(chan raft.ApplyMsg)
 
@@ -50,17 +48,15 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister)
 
 	rpcInit(sc)
 
-	// start applier goroutine to apply committed logs to stateMachine
 	go sc.applier()
 
 	DPrintf("{ShardCtrler %v} has started", sc.rf.Me())
 	return sc
 }
 
-// a dedicated applier goroutine to apply committed entries to stateMachine
 func (sc *ShardCtrler) applier() {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	for sc.killed() == false {
 		select {
@@ -72,7 +68,6 @@ func (sc *ShardCtrler) applier() {
 				sc.mu.Lock()
 
 				if command.Op != OpQuery && sc.isDuplicateRequest(command.ClientId, command.CommandId) {
-					DPrintf("{Node %v} doesn't apply duplicated message %v to stateMachine because maxAppliedCommandId is %v for client %v", sc.rf.Me(), message, sc.lastOperations[command.ClientId], command.ClientId)
 
 					response = sc.lastOperations[command.ClientId].LastResponse
 				} else {
@@ -96,9 +91,11 @@ func (sc *ShardCtrler) applier() {
 	}
 }
 
+// applyLogToStateMachine 根据对stateMachine的操作，和kv server做出区分
+// kv server是对键值和分片的管理，shardCtrler是对键值配置的管理
 func (sc *ShardCtrler) applyLogToStateMachine(command Command) *CommandResponse {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	var config Config
 	var err Err
@@ -117,7 +114,7 @@ func (sc *ShardCtrler) applyLogToStateMachine(command Command) *CommandResponse 
 
 func (sc *ShardCtrler) Command(request *CommandRequest, response *CommandResponse) (err error) {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	// return result directly without raft layer's participation if request is duplicated
 	sc.mu.RLock()

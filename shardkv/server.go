@@ -60,7 +60,7 @@ type ShardKV struct {
 // StartServer() 必须快速返回，因此它应该启动 goroutines
 func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister, maxRaftState int, gid int, ctrlers []*labrpc.ClientEnd, makeEnd func(string) *labrpc.ClientEnd) *ShardKV {
 
-	zap.S().Info(utils.GetCurrentFunctionName())
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	labgob.Register(Command{})
 	labgob.Register(CommandRequest{})
@@ -121,18 +121,18 @@ func (kv *ShardKV) initStateMachines() {
 // 应用操作: 1.数据操作 2.配置操作 3.分片插入/删除 4.空日志
 func (kv *ShardKV) applier() {
 
-	zap.S().Info(utils.GetCurrentFunctionName())
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	for kv.killed() == false {
 		select {
 		case message := <-kv.applyCh:
 
-			zap.S().Warnf("{Node %v}{Group %v} tries to apply message %v", kv.Rf.Me(), kv.gid, message)
+			zap.S().Infof("{Node %v}{Group %v} tries to apply message %v", kv.Rf.Me(), kv.gid, message)
 
 			if message.CommandValid {
+				zap.S().Warn("a command is applying to kv stateMachine")
 				kv.mu.Lock()
 				if message.CommandIndex <= kv.lastApplied {
-					DPrintf("{Node %v}{Group %v} discards outdated message %v because a newer snapshot which lastApplied is %v has been restored", kv.Rf.Me(), kv.gid, message, kv.lastApplied)
 					kv.mu.Unlock()
 					continue
 				}
@@ -142,24 +142,30 @@ func (kv *ShardKV) applier() {
 				command := message.Command.(Command)
 				switch command.Op {
 				case Operation:
+					zap.S().Warn("command type is Operation")
 					operation := command.Data.(CommandRequest)
 					response = kv.applyOperation(&message, &operation)
 				case Configuration:
+					zap.S().Warn("command type is Configuration")
 					nextConfig := command.Data.(shardctrler.Config)
 					response = kv.applyConfiguration(&nextConfig)
 				case InsertShards:
+					zap.S().Warn("command type is InsertShards")
 					shardsInfo := command.Data.(ShardOperationResponse)
 					response = kv.applyInsertShards(&shardsInfo)
 				case DeleteShards:
+					zap.S().Warn("command type is DeleteShards")
 					shardsInfo := command.Data.(ShardOperationRequest)
 					response = kv.applyDeleteShards(&shardsInfo)
 				case EmptyEntry:
+					zap.S().Warn("command type is EmptyEntry")
 					response = kv.applyEmptyEntry()
 				}
 
 				// only notify related channel for currentTerm's log when node is leader
 				if currentTerm, isLeader := kv.Rf.GetState(); isLeader && message.CommandTerm == currentTerm {
 					ch := kv.getNotifyChan(message.CommandIndex)
+					zap.S().Warn("leader send response to client's chan")
 					ch <- response
 				}
 
@@ -169,6 +175,7 @@ func (kv *ShardKV) applier() {
 				}
 				kv.mu.Unlock()
 			} else if message.SnapshotValid {
+				zap.S().Warn("a snapshot is applying to kv stateMachine")
 				kv.mu.Lock()
 				if kv.Rf.CondInstallSnapshot(message.SnapshotTerm, message.SnapshotIndex, message.Snapshot) {
 					kv.restoreSnapshot(message.Snapshot)
@@ -187,10 +194,9 @@ func (kv *ShardKV) applyOperation(message *raft.ApplyMsg, operation *CommandRequ
 	zap.S().Warn(utils.GetCurrentFunctionName())
 	var response *CommandResponse
 	shardID := key2shard(operation.Key)
-	zap.S().Warn("shardID", zap.Any("shardid", shardID))
 	if kv.canServe(shardID) {
 		if operation.Op != OpGet && kv.isDuplicateRequest(operation.ClientId, operation.CommandId) {
-			DPrintf("{Node %v}{Group %v} doesn't apply duplicated message %v to stateMachine because maxAppliedCommandId is %v for client %v", kv.Rf.Me(), kv.gid, message, kv.lastOperations[operation.ClientId], operation.ClientId)
+			zap.S().Warn("command is DuplicateRequest")
 			return kv.lastOperations[operation.ClientId].LastResponse
 		} else {
 			response = kv.applyLogToStateMachines(operation, shardID)
@@ -275,6 +281,7 @@ func (kv *ShardKV) applyEmptyEntry() *CommandResponse {
 	return &CommandResponse{OK, ""}
 }
 
+// applyLogToStateMachines 对状态机的具体操作
 func (kv *ShardKV) applyLogToStateMachines(operation *CommandRequest, shardID int) *CommandResponse {
 	zap.S().Warn(utils.GetCurrentFunctionName())
 	var value string
@@ -294,6 +301,7 @@ func (kv *ShardKV) applyLogToStateMachines(operation *CommandRequest, shardID in
 
 // ------------------------------ local Raft part begin ------------------------------
 
+// Command raft层的入口
 func (kv *ShardKV) Command(request *CommandRequest, response *CommandResponse) (err error) {
 
 	zap.S().Warn(utils.GetCurrentFunctionName())
@@ -321,7 +329,7 @@ func (kv *ShardKV) Command(request *CommandRequest, response *CommandResponse) (
 // 与Raft层交互，
 func (kv *ShardKV) Execute(command Command, response *CommandResponse) {
 
-	zap.S().Info(utils.GetCurrentFunctionName())
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	if utils.P == utils.PathGet {
 		zap.S().Info(zap.Any("func", "shardctrler.server.execute"))
@@ -334,18 +342,20 @@ func (kv *ShardKV) Execute(command Command, response *CommandResponse) {
 		response.Err = ErrWrongLeader
 		return
 	}
-	defer DPrintf("{Node %v}{Group %v} processes Command %v with CommandResponse %v", kv.Rf.Me(), kv.gid, command, response)
 	kv.mu.Lock()
+	zap.S().Warn("make chan for client")
 	ch := kv.getNotifyChan(index)
 	kv.mu.Unlock()
 	select {
 	case result := <-ch:
+		zap.S().Warn("client chan calls back")
 		response.Value, response.Err = result.Value, result.Err
 	case <-time.After(ExecuteTimeout):
+		zap.S().Warn("command timeout")
 		response.Err = ErrTimeout
 	}
-	// release notifyChan to reduce memory footprint
-	// why asynchronously? to improve throughput, here is no need to block client request
+	// 释放 notifyChan 以减少内存占用
+	// 为了提高吞吐量，这里不需要阻塞客户端请求
 	go func() {
 		kv.mu.Lock()
 		kv.removeOutdatedNotifyChan(index)
@@ -357,10 +367,11 @@ func (kv *ShardKV) Execute(command Command, response *CommandResponse) {
 
 // ------------------------------ Shard part begin ------------------------------
 
+// GetShardsData 用于分片迁移操作
 func (kv *ShardKV) GetShardsData(request *ShardOperationRequest, response *ShardOperationResponse) (err error) {
 	// only pull shards from leader
 
-	zap.S().Info(utils.GetCurrentFunctionName())
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	if _, isLeader := kv.Rf.GetState(); !isLeader {
 		response.Err = ErrWrongLeader
@@ -391,7 +402,7 @@ func (kv *ShardKV) GetShardsData(request *ShardOperationRequest, response *Shard
 }
 
 func (kv *ShardKV) DeleteShardsData(request *ShardOperationRequest, response *ShardOperationResponse) (err error) {
-	zap.S().Info(utils.GetCurrentFunctionName())
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	// only delete shards when role is leader
 	if _, isLeader := kv.Rf.GetState(); !isLeader {
@@ -428,7 +439,7 @@ func (kv *ShardKV) getShardStatus() []ShardStatus {
 }
 
 func (kv *ShardKV) getShardIDsByStatus(status ShardStatus) map[int][]int {
-	zap.S().Warn(utils.GetCurrentFunctionName())
+	zap.S().Info(utils.GetCurrentFunctionName())
 	gid2shardIDs := make(map[int][]int)
 	for i, shard := range kv.stateMachines {
 		if shard.Status == status {
@@ -513,7 +524,7 @@ func (kv *ShardKV) restoreSnapshot(snapshot []byte) {
 
 func (kv *ShardKV) Monitor(action func(), timeout time.Duration) {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	for kv.killed() == false {
 		if _, isLeader := kv.Rf.GetState(); isLeader {
@@ -524,13 +535,13 @@ func (kv *ShardKV) Monitor(action func(), timeout time.Duration) {
 }
 
 func (kv *ShardKV) configureAction() {
-	zap.S().Warn(utils.GetCurrentFunctionName())
+	zap.S().Info(utils.GetCurrentFunctionName())
 	canPerformNextConfig := true
 	kv.mu.RLock()
 	for _, shard := range kv.stateMachines {
 		if shard.Status != Serving {
 			canPerformNextConfig = false
-			zap.S().Infof("{Node %v}{Group %v} will not try to fetch latest configuration because shards status are %v when currentConfig is %v", kv.Rf.Me(), kv.gid, kv.getShardStatus(), kv.currentConfig)
+			zap.S().Warn("{Node %v}{Group %v} will not try to fetch latest configuration because shards status are %v when currentConfig is %v", kv.Rf.Me(), kv.gid, kv.getShardStatus(), kv.currentConfig)
 			break
 		}
 	}
@@ -539,14 +550,14 @@ func (kv *ShardKV) configureAction() {
 	if canPerformNextConfig {
 		nextConfig := kv.sc.Query(currentConfigNum + 1)
 		if nextConfig.Num == currentConfigNum+1 {
-			DPrintf("{Node %v}{Group %v} fetches latest configuration %v when currentConfigNum is %v", kv.Rf.Me(), kv.gid, nextConfig, currentConfigNum)
+			zap.S().Warn("{Node %v}{Group %v} fetches latest configuration %v when currentConfigNum is %v", kv.Rf.Me(), kv.gid, nextConfig, currentConfigNum)
 			kv.Execute(NewConfigurationCommand(&nextConfig), &CommandResponse{})
 		}
 	}
 }
 
 func (kv *ShardKV) migrationAction() {
-	zap.S().Warn(utils.GetCurrentFunctionName())
+	zap.S().Info(utils.GetCurrentFunctionName())
 	kv.mu.RLock()
 	gid2shardIDs := kv.getShardIDsByStatus(Pulling)
 	var wg sync.WaitGroup
@@ -573,7 +584,7 @@ func (kv *ShardKV) migrationAction() {
 
 func (kv *ShardKV) gcAction() {
 
-	zap.S().Warn(utils.GetCurrentFunctionName())
+	zap.S().Info(utils.GetCurrentFunctionName())
 
 	kv.mu.RLock()
 	gid2shardIDs := kv.getShardIDsByStatus(GCing)
@@ -637,6 +648,7 @@ func (kv *ShardKV) getNotifyChan(index int) chan *CommandResponse {
 // each RPC imply that the client has seen the reply for its previous RPC
 // therefore, we only need to determine whether the latest commandId of a clientId meets the criteria
 func (kv *ShardKV) isDuplicateRequest(clientId int64, requestId int64) bool {
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	operationContext, ok := kv.lastOperations[clientId]
 	return ok && requestId <= operationContext.MaxAppliedCommandId
 }

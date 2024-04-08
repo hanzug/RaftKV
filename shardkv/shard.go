@@ -15,7 +15,7 @@ func NewShard() *Shard {
 }
 
 func (shard *Shard) Get(key string) (string, Err) {
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Info(utils.GetCurrentFunctionName())
 	if value, ok := shard.KV[key]; ok {
 		return value, OK
 	}
@@ -23,19 +23,19 @@ func (shard *Shard) Get(key string) (string, Err) {
 }
 
 func (shard *Shard) Put(key, value string) Err {
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Info(utils.GetCurrentFunctionName())
 	shard.KV[key] = value
 	return OK
 }
 
 func (shard *Shard) Append(key, value string) Err {
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Info(utils.GetCurrentFunctionName())
 	shard.KV[key] += value
 	return OK
 }
 
 func (shard *Shard) deepCopy() map[string]string {
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Info(utils.GetCurrentFunctionName())
 	newShard := make(map[string]string)
 	for k, v := range shard.KV {
 		newShard[k] = v

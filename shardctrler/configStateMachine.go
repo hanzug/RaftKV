@@ -55,13 +55,13 @@ func (cf *MemoryConfigStateMachine) Join(groups map[int][]string) Err {
 	}
 	newConfig.Shards = newShards
 	cf.Configs = append(cf.Configs, newConfig)
-	zap.S().Warn(zap.Any("cf", cf.Configs))
+	zap.S().Info(zap.Any("cf", cf.Configs))
 	return OK
 }
 
 func (cf *MemoryConfigStateMachine) Leave(gids []int) Err {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	lastConfig := cf.Configs[len(cf.Configs)-1]
 	newConfig := Config{len(cf.Configs), lastConfig.Shards, deepCopy(lastConfig.Groups)}
@@ -96,7 +96,7 @@ func (cf *MemoryConfigStateMachine) Leave(gids []int) Err {
 
 func (cf *MemoryConfigStateMachine) Move(shard, gid int) Err {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
 	lastConfig := cf.Configs[len(cf.Configs)-1]
 	newConfig := Config{len(cf.Configs), lastConfig.Shards, deepCopy(lastConfig.Groups)}

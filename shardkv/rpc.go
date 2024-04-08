@@ -12,7 +12,7 @@ import (
 
 func rpcInit(kv *ShardKV) {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Info(utils.GetCurrentFunctionName())
 
 	var err error
 	rpc.Register(kv.Rf)

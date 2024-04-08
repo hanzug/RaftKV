@@ -9,7 +9,7 @@ import (
 
 func MakeEnd(endname string) *labrpc.ClientEnd {
 
-	zap.S().Warn(GetCurrentFunctionName())
+	zap.S().Info(GetCurrentFunctionName())
 
 	client := new(labrpc.ClientEnd)
 

@@ -13,7 +13,7 @@ import "time"
 // key2shard 将键转换为分片
 // 首字符对分片数取模
 func key2shard(key string) int {
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	shard := 0
 	if len(key) > 0 {
 		shard = int(key[0])
@@ -42,7 +42,7 @@ type Clerk struct {
 
 // MakeClerk 创建一个新的 Clerk
 func MakeClerk(ctrlers []*labrpc.ClientEnd, makeEnd func(string) *labrpc.ClientEnd) *Clerk {
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	ck := &Clerk{
 		Sm:        shardctrler.MakeClerk(ctrlers),
 		makeEnd:   makeEnd,
@@ -55,44 +55,50 @@ func MakeClerk(ctrlers []*labrpc.ClientEnd, makeEnd func(string) *labrpc.ClientE
 }
 
 func (ck *Clerk) Get(key string) string {
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	return ck.Command(&CommandRequest{Key: key, Op: OpGet})
 }
 
 func (ck *Clerk) Put(key string, value string) {
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	ck.Command(&CommandRequest{Key: key, Value: value, Op: OpPut})
 }
 func (ck *Clerk) Append(key string, value string) {
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	zap.S().Warn(utils.GetCurrentFunctionName())
 	ck.Command(&CommandRequest{Key: key, Value: value, Op: OpAppend})
 }
 
 // Command 执行一个命令
 func (ck *Clerk) Command(request *CommandRequest) string {
 
-	zap.S().Info(zap.Any("func", utils.GetCurrentFunctionName()))
+	// 记录当前函数的信息
+	zap.S().Warn(utils.GetCurrentFunctionName())
 
+	// 设置请求的客户端ID和命令ID
 	request.ClientId, request.CommandId = ck.clientId, ck.commandId
 	for {
-		//转换到对应分片
+		// 根据键值转换到对应的分片
 		shard := key2shard(request.Key)
-		//取到对应组id
+		// 获取对应的组ID
 		gid := ck.config.Shards[shard]
 
-		zap.S().Warn("gid:", zap.Any("gid", gid))
+		zap.S().Info("gid:", zap.Any("gid", gid))
 
+		// 如果该组ID存在
 		if servers, ok := ck.config.Groups[gid]; ok {
+			// 如果该组ID的领导者ID不存在，则设置为0
 			if _, ok = ck.leaderIds[gid]; !ok {
 				ck.leaderIds[gid] = 0
 			}
 			oldLeaderId := ck.leaderIds[gid]
 			newLeaderId := oldLeaderId
-			// 循环
+			// 循环尝试执行命令
 			for {
 				var response CommandResponse
 
+				// 创建RPC端点
 				tmp := ck.makeEnd(servers[newLeaderId])
+				// 如果RPC端点不存在或RPC调用失败，则尝试下一个服务器
 				if tmp == nil || tmp.Rpc == nil {
 					zap.S().Info("rpc call failed", zap.Any("servers[newleaderid]", servers[newLeaderId]))
 					newLeaderId = (newLeaderId + 1) % len(servers)
@@ -102,17 +108,20 @@ func (ck *Clerk) Command(request *CommandRequest) string {
 					continue
 				}
 
+				// 调用RPC方法执行命令
 				ok := tmp.Rpc.Call("ShardKV.Command", request, &response)
 
-				zap.S().Warn(zap.Error(ok), zap.Any("response", response.Err))
+				zap.S().Info(zap.Error(ok), zap.Any("response", response.Err))
 
+				// 如果命令执行成功，则返回结果
 				if ok == nil && (response.Err == OK || response.Err == ErrNoKey) {
 					ck.commandId++
 					return response.Value
 				} else if ok == nil && response.Err == ErrWrongGroup {
 					break
 				} else {
-					zap.S().Warn("wrong leader continue")
+					// 如果命令执行失败，则尝试下一个服务器
+					zap.S().Info("wrong leader continue")
 					newLeaderId = (newLeaderId + 1) % len(servers)
 					if newLeaderId == oldLeaderId {
 						break
@@ -121,9 +130,9 @@ func (ck *Clerk) Command(request *CommandRequest) string {
 				}
 			}
 		}
-		time.Sleep(5 * time.Second)
-		// 获取最新的配置
+		// 等待一段时间后，获取最新的配置并重试
+		time.Sleep(time.Second)
 		ck.config = ck.Sm.Query(-1)
-		zap.S().Warn(zap.Any("", zap.Any("config", ck.config)))
+		zap.S().Info(zap.Any("", zap.Any("config", ck.config)))
 	}
 }
