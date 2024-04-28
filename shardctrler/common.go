@@ -7,27 +7,22 @@ import (
 )
 
 //
-// Shard controller: assigns shards to replication groups.
+// 碎片控制器：将碎片分配到复制组。
 //
-// RPC interface:
-// Join(servers) -- add a set of groups (gid -> server-list mapping).
-// Leave(gids) -- delete a set of groups.
-// Move(shard, gid) -- hand off one shard from current owner to gid.
+// RPC 接口：
+// Join(servers) -- 添加组（gid -> server-list 映射）。
+// Leave(gids) -- 删除组。
+// Move(shard, gid) -- 将当前所有者的一个分块移交给 gid。
 // Query(num) -> fetch Config # num, or latest config if num==-1.
 //
-// A Config (configuration) describes a set of replica groups, and the
-// replica group responsible for each shard. Configs are numbered. Config
-// #0 is the initial configuration, with no groups and all shards
-// assigned to group 0 (the invalid group).
-//
-// You will need to add fields to the RPC argument structs.
-//
+// 一个 Config（配置）描述了一组复制组，以及负责每个分区的
+// 复制组负责每个分片。配置是有编号的。配置
+// 0 是初始配置，没有组，所有分片
+// 分配给第 0 组（无效组）。
 
-// The number of shards.
+// NShards 分片数量
 const NShards = 10
 
-// A configuration -- an assignment of shards to groups.
-// Please don't change this.
 type Config struct {
 	Num    int              // config number
 	Shards [NShards]int     // shard -> gid

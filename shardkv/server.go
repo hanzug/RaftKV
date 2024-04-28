@@ -345,6 +345,7 @@ func (kv *ShardKV) Execute(command Command, response *CommandResponse) {
 	kv.mu.Lock()
 	zap.S().Warn("make chan for client")
 	ch := kv.getNotifyChan(index)
+
 	kv.mu.Unlock()
 	select {
 	case result := <-ch:

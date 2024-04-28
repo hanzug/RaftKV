@@ -440,7 +440,7 @@ func (rf *Raft) genRequestVoteRequest() *RequestVoteRequest {
 
 func (rf *Raft) genAppendEntriesRequest(prevLogIndex int) *AppendEntriesRequest {
 
-	//zap.S().Info(utils.GetCurrentFunctionName())
+	zap.S().Info(utils.GetCurrentFunctionName())
 
 	firstIndex := rf.getFirstLog().Index
 	entries := make([]Entry, len(rf.logs[prevLogIndex+1-firstIndex:]))
@@ -457,7 +457,7 @@ func (rf *Raft) genAppendEntriesRequest(prevLogIndex int) *AppendEntriesRequest 
 
 func (rf *Raft) handleAppendEntriesResponse(peer int, request *AppendEntriesRequest, response *AppendEntriesResponse) {
 
-	//zap.S().Info(utils.GetCurrentFunctionName())
+	zap.S().Info(utils.GetCurrentFunctionName())
 
 	if rf.state == StateLeader && rf.currentTerm == request.Term {
 		if response.Success {
